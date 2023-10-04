@@ -7,6 +7,7 @@ Step-1
 Step-2
 1.	If you are testing the application from visual studio and retrieving the app setting from Azure key vault then first you have environment variable for the Authentication .
  
+![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/779b1588-05bb-4b78-97d7-792b4ef2bac1)
 
 2.	Next you have to install nuget package in your application.
 Azure.Identity;
