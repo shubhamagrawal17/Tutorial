@@ -13,6 +13,7 @@ Step-2
 Azure.Identity;
 Azure.Security.KeyVault.Secrets;
 3.	Add below code in your startup.cs file.
+![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/df0de739-2eec-4d42-a76e-a6dfa28692f3)
 
  
 
@@ -28,7 +29,8 @@ services.AddDbContext<AppDbContext>(options => options.UseSqlServer(DefaultConne
 
 Here appsetting – is the secret name which you have created in key vault.
 4.	Next your appsetting.json file will be like this.
- 
+ ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/eaa67a3e-67f2-4acd-80b2-f414d0b1e4ff)
+
 Here appsetting – is the secret name which you have created in key vault.
 
 
