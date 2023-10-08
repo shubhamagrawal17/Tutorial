@@ -3,6 +3,15 @@ Step-1
 1.	First create the app registration in Azure portal and generate the secret.
    ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/9269bb60-ae0e-44db-937a-308136795eb0)
 
+   ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/b5dafad2-bf5f-424f-a13c-2ce0ae8dd1a8)
+   2. Then create the secret.
+   ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/60a097d4-4286-49d4-80fc-5c7be60273b9)
+
+   ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/780bb1dd-3e74-44a2-866e-92bf5a05ff74)
+
+
+
+
 3.	Create the Azure Key Vault .
 4.	Create the secret in Azure key vault and use Access configuration as Azure role-based access control .
 5.	If you see below error and If you are creating the Key vault with RBAC role from scratch then Please assign Key vault Administrator to your name for creating/ managing the secrets, certificates and keys.
