@@ -27,7 +27,8 @@ Step-1
 
 
 
-8.	Now add IAM Role and select role key value administrator and select member as a service principle which we have created in step1.
+8.	Now add IAM Role and select role Key Vault Contributor and select member as a service principle which we have created in step1.
+   
 Step-2
 1.	If you are testing the application from visual studio and retrieving the app setting from Azure key vault then first you have environment variable for the Authentication .
  
