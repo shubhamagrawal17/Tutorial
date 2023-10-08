@@ -17,7 +17,17 @@ Step-1
 5.	If you see below error and If you are creating the Key vault with RBAC role from scratch then Please assign Key vault Administrator to your name for creating/ managing the secrets, certificates and keys.
    ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/6f87fd76-dbc8-4b05-b049-13beb9cf6128)
 
-6.	Now add IAM Role and select role key value administrator and select member as a service principle which we have created in step1.
+   ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/edcf2af7-bbb8-4f03-8940-3e0341daf39f)
+
+6. Once you add the IAM Role then you can create the secret.
+   ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/81722ca5-6cfc-4828-b84c-61705873a711)
+
+   ![image](https://github.com/shubhamagrawal17/Tutorial/assets/24695227/aad3770f-7dfc-48b1-8d78-c4db8c101bd4)
+
+
+
+
+8.	Now add IAM Role and select role key value administrator and select member as a service principle which we have created in step1.
 Step-2
 1.	If you are testing the application from visual studio and retrieving the app setting from Azure key vault then first you have environment variable for the Authentication .
  
