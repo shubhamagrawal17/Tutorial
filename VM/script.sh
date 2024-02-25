@@ -22,7 +22,7 @@ tar zxvf vsts-agent-linux-x64.tar.gz -C myagent
 chmod -R 777 myagent
 # Configuration of the self-hosted agent
 cd myagent
-./config.sh --unattended --url https://dev.azure.com/Learnazure162022 --auth pat --token 3fitpczwotmhbm6wb5367ht2kmmql6jnoekvrsrmjhrhqhesd4za --pool Default --agent aksagent --acceptTeeEula
+./config.sh --unattended --url your organizations url --auth pat --token your pat token --pool Default --agent aksagent --acceptTeeEula
 # Start the agent service
 sudo ./svc.sh install
 sudo ./svc.sh start
