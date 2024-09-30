@@ -1,5 +1,4 @@
-## we are going to create 3 virtual network one for AKS , second for ACR and other Resource and third for selfhosted agents#
-
+## Updated configuration for 3 virtual networks (AKS, ACR, and self-hosted agents) ##
 resource "azurerm_virtual_network" "aks-vnet" {
   name                = var.AKS_VNET_NAME
   location            = var.LOCATION
@@ -22,6 +21,7 @@ resource "azurerm_subnet" "appgw-subnet" {
   virtual_network_name = azurerm_virtual_network.aks-vnet.name
   address_prefixes     = [var.APPGW_SUBNET_ADDRESS_PREFIX]
 }
+
 resource "azurerm_virtual_network" "acr-vnet" {
   name                = var.ACR_VNET_NAME
   location            = var.LOCATION
@@ -30,10 +30,10 @@ resource "azurerm_virtual_network" "acr-vnet" {
 
   subnet {
     name           = var.ACR_SUBNET_NAME
-    address_prefix = var.ACR_SUBNET_ADDRESS_PREFIX
+    address_prefixes = [var.ACR_SUBNET_ADDRESS_PREFIX]
   }
-  
 }
+
 resource "azurerm_virtual_network" "agent-vnet" {
   name                = var.AGENT_VNET_NAME
   location            = var.LOCATION
@@ -42,7 +42,7 @@ resource "azurerm_virtual_network" "agent-vnet" {
 
   subnet {
     name           = var.AGENT_SUBNET_NAME
-    address_prefix = var.AGENT_SUBNET_ADDRESS_PREFIX
+    address_prefixes = [var.AGENT_SUBNET_ADDRESS_PREFIX]
   }
 }
 
@@ -55,6 +55,7 @@ resource "azurerm_virtual_network_peering" "aks-acr" {
   allow_forwarded_traffic      = true
   allow_gateway_transit        = true
 }
+
 resource "azurerm_virtual_network_peering" "acr-aks" {
   name                      = "acrtoaks"
   resource_group_name       = var.RESOURCE_GROUP_NAME
@@ -64,6 +65,7 @@ resource "azurerm_virtual_network_peering" "acr-aks" {
   allow_forwarded_traffic      = true
   allow_gateway_transit        = true
 }
+
 resource "azurerm_virtual_network_peering" "acr-agent" {
   name                      = "acrtoagnet"
   resource_group_name       = var.RESOURCE_GROUP_NAME
@@ -73,6 +75,7 @@ resource "azurerm_virtual_network_peering" "acr-agent" {
   allow_forwarded_traffic      = true
   allow_gateway_transit        = true
 }
+
 resource "azurerm_virtual_network_peering" "agent-acr" {
   name                      = "agnettoacr"
   resource_group_name       = var.RESOURCE_GROUP_NAME
@@ -82,6 +85,7 @@ resource "azurerm_virtual_network_peering" "agent-acr" {
   allow_forwarded_traffic      = true
   allow_gateway_transit        = true
 }
+
 resource "azurerm_virtual_network_peering" "aks-agent" {
   name                      = "akstoagnet"
   resource_group_name       = var.RESOURCE_GROUP_NAME
@@ -91,6 +95,7 @@ resource "azurerm_virtual_network_peering" "aks-agent" {
   allow_forwarded_traffic      = true
   allow_gateway_transit        = true
 }
+
 resource "azurerm_virtual_network_peering" "agent-aks" {
   name                      = "agnettoaks"
   resource_group_name       = var.RESOURCE_GROUP_NAME
