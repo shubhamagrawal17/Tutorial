@@ -19,7 +19,7 @@ resource "azurerm_public_ip" "public_ip" {
   name                = "agentip"
   resource_group_name = data.azurerm_resource_group.rg-devops.name
   location            = var.LOCATION
-  allocation_method   = "Dynamic"
+  allocation_method   = "Static"
 }
 ##Create The network_interface
 ##Network interface cards are virtual network cards that form the link between virtual machines and the virtual network
