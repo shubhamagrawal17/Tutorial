@@ -1,0 +1,8 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-blue-service
+  namespace: production
+spec:
+  type: ExternalName
+  externalName: app-blue-service.blue.svc.cluster.local

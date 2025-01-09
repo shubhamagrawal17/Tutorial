@@ -1,0 +1,23 @@
+Update Variables-
+Write-Host "Starting tag replacement in Kubernetes manifest..."
+$manifestPath = "$(System.DefaultWorkingDirectory)/_ACR_Push/k8s-manifests/Green-Env/green-deployment.yaml"
+$content = Get-Content $manifestPath
+$updatedContent = $content -replace '{{TAG}}', '$(Build.BuildId)'
+Set-Content -Path $manifestPath -Value $updatedContent
+Write-Host "Tag replacement completed successfully."
+
+Install Nginx -
+
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+helm upgrade nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz --set controller.service.externalTrafficPolicy=Local
+kubectl get svc -n ingress-nginx
+
+Install Kubectl -
+az aks get-credentials --resource-group demo --name demoaks --overwrite-existing
+curl -s https://packages.cloud.google.com/apt/doc/apt-key.gpg  | sudo apt-key add
+sudo apt-add-repository "deb http://apt.kubernetes.io/  kubernetes-xenial main"
+sudo apt update
+sudo apt-get install -y kubectl
+kubectl get deployments --all-namespaces=true
