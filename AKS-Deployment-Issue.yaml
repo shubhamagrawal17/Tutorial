@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-demo
+  labels:
+    app: nginx-demo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: nginx-demo
+  template:
+    metadata:
+      labels:
+        app: nginx-demo
+    spec:
+      containers:
+      - name: nginx
+        image: nginx:1.21.6
+        command: ["/bin/sh"]
+        args: ["-c", "exit 1"]
+        ports:
+        - containerPort: 80
+        readinessProbe:
+          httpGet:
+            path: /invalid
+            port: 80
+          initialDelaySeconds: 5
+          periodSeconds: 10
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-service
+spec:
+  type: ClusterIP
+  selector:
+    app: nginx-demo-crash
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80
