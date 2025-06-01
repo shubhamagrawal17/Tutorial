@@ -1,0 +1,55 @@
+parameters:
+  pythonVersion: '3.9'
+stages:
+  - stage: Build
+    displayName: Build and Test
+    jobs:
+      - job: Build
+        pool:
+          vmImage: 'ubuntu-latest'
+        steps:
+          - task: UsePythonVersion@0
+            inputs:
+              versionSpec: ${{parameters.pythonVersion}}
+              addToPath: true
+              architecture: 'x64'
+          # Create the PIP cache directory
+          - script: mkdir -p /home/vsts/.cache/pip
+            displayName: 'Ensure Pip cache directory exists'
+          # cache pip package between pipeline runs to spped up dependency installation
+          - task: Cache@2
+            inputs:
+              key: 'python | "$(Agent.Os)" | requirements.txt'
+              path: '/home/vsts/.cache/pip'
+          - script: |
+              pip install --upgrade pip
+              pip install -r requirements.txt
+            displayName: Install Dependencies
+          # run flake8
+          - script: flake8
+            displayName: Lint code
+          # Run Pytest
+          - script: |
+              export PYTHONPATH=$(pwd)
+              pytest tests/
+            displayName: Run unit Tests
+        # run Bandit
+          - script: |
+              python -m pip install bandit
+            displayName: Install Bandit
+        # scan the codebase
+          - script: |
+              bandit -r .
+            displayName: scan codebase
+          - task: ArchiveFiles@2
+            inputs:
+              rootFolderOrFile: '$(System.DefaultWorkingDirectory)'
+              includeRootFolder: false
+              archiveType: 'zip'
+              archiveFile: '$(Build.ArtifactStagingDirectory)/pythonapp.zip'
+              replaceExistingArchive: true
+          - task: PublishBuildArtifacts@1
+            inputs:
+              PathtoPublish: '$(Build.ArtifactStagingDirectory)/pythonapp.zip'
+              ArtifactName: 'drop'
+              publishLocation: 'Container'

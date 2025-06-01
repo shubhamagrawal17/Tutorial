@@ -1,0 +1,26 @@
+# Starter pipeline
+# Start with a minimal pipeline that you can customize to build and deploy your code.
+# Add steps that build, run tests, deploy, and more:
+# https://aka.ms/yaml
+
+trigger:
+- main
+
+pool:
+  Default
+  
+stages:
+
+- stage: Build_and_Push
+  jobs:
+  - job: Build_and_Push_Job
+    steps:
+    - checkout: self
+    - script: |
+        # Authenticate with Azure CLI
+        az login --service-principal -u $(servicePrincipalId) -p $(servicePrincipalKey) --tenant $(tenantId)
+        az acr login --name $(TF_VAR_ACR)  # Replace with your ACR name
+        # Build and push the Docker image to ACR
+        docker build -t $(TF_VAR_ACR).azurecr.io/$(build.repository.name)-$(Build.SourceBranchName):'$(Build.BuildId)' .
+        docker push $(TF_VAR_ACR).azurecr.io/$(build.repository.name)-$(Build.SourceBranchName):'$(Build.BuildId)'
+      displayName: 'Build and Push Docker Image'

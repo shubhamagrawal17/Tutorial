@@ -1,0 +1,19 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: my-app    # This is the name of the Deployment.
+spec:
+  replicas: 1     # This specifies that one pod should be running at all times.
+  selector:
+    matchLabels:
+      app: my-app
+  template:         # This template defines how the pods should be created.
+    metadata:
+      labels:       # Each pod will have the label app: my-app so that the Deployment can manage it.
+        app: my-app
+    spec:            # Pod Specification
+      containers:
+      - name: my-app  # The container is named my-app.
+        image: nginx  # It pulls the latest NGINX image from Docker Hub.
+        ports:
+        - containerPort: 80  # Exposes port 80 inside the container

@@ -1,0 +1,19 @@
+## This YAML file defines a ClusterIssuer resource for cert-manager in Kubernetes. 
+## It is responsible for obtaining and managing SSL/TLS certificates from Let's Encrypt across the entire cluster.
+apiVersion: cert-manager.io/v1  ## Specifies the cert-manager API.
+kind: ClusterIssuer             ##  Defines a Cluster-wide certificate issuer.
+metadata:
+  name: letsencrypt-prod        ## The name of the ClusterIssuer.
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory  ## Uses the Let's Encrypt production ACME API to issue real certificates.
+    email: subhek.agrawal@gmail.com                          ## Let's Encrypt will send notifications for certificate expiration or issues.
+    privateKeySecretRef:                                     ## Stores the private key used for Let's Encrypt's challenges.
+      name: letsencrypt-prod                                 ## The secret name is letsencrypt-prod, which cert-manager automatically manages.
+    solvers:                                                 ## Solvers determine how Let's Encrypt verifies domain ownership.
+    - http01:                                                ## Creates a temporary HTTP endpoint under /.well-known/acme-challenge/.
+        ingress:                                             ## Let's Encrypt sends a request to verify domain control.
+          class: azure/application-gateway                   ## The Ingress controller (azure/application-gateway) routes this challenge request.
+
+## Apply the ClusterIssuer: kubectl apply -f letsencrypt-clusterissuer.yaml
+## Verify it: kubectl get clusterissuer

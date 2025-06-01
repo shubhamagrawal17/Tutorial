@@ -1,0 +1,62 @@
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+steps:
+# Step 1: Maven Build and Test
+- task: Maven@4
+  inputs:
+    mavenPomFile: 'sonarcloud-sample-project/pom.xml'
+    goals: 'clean verify'  # Ensure JaCoCo report is generated
+    options: '-DskipTests=false'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '17'
+    mavenVersionOption: 'Default'
+    mavenAuthenticateFeed: false
+    effectivePomSkip: false
+
+# Step 2: Publish JUnit Test Results
+- task: PublishTestResults@2
+  inputs:
+    testResultsFiles: '**/surefire-reports/TEST-*.xml'
+    testRunTitle: 'JUnit Test Results'
+    mergeTestResults: true
+
+# Step 3: Publish Code Coverage Results
+- task: PublishCodeCoverageResults@2
+  inputs:
+    summaryFileLocation: '**/target/site/jacoco/jacoco.xml'
+    failIfCoverageEmpty: true
+
+# Step 4: SonarCloud Analysis Preparation
+- task: SonarCloudPrepare@2
+  inputs:
+    SonarCloud: 'Sonar Cloud'
+    organization: 'demoaks'
+    scannerMode: 'CLI'
+    configMode: 'manual'
+    cliProjectKey: 'demoaks_testing-app'
+    cliProjectName: 'testing-app'
+    cliSources: 'sonarcloud-sample-project/src/main/java'
+    extraProperties: |
+      sonar.junit.reportPaths=target/surefire-reports
+      sonar.jacoco.reportPaths=target/site/jacoco/jacoco.xml
+
+# Step 5: Run SonarCloud Analysis
+- task: Maven@4
+  inputs:
+    mavenPomFile: 'sonarcloud-sample-project/pom.xml'
+    goals: 'sonar:sonar'
+    javaHomeOption: 'JDKVersion'
+    jdkVersionOption: '17'
+    mavenVersionOption: 'Default'
+    mavenAuthenticateFeed: false
+    effectivePomSkip: false
+    sonarQubeRunAnalysis: false
+
+# Step 6: Publish SonarCloud Quality Gate Result
+- task: SonarCloudPublish@2
+  inputs:
+    pollingTimeoutSec: '300'

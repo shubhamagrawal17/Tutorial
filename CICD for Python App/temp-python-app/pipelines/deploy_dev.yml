@@ -1,0 +1,23 @@
+stages:
+- stage: Deploy_Dev
+  displayName: Deploy to Dev
+  dependsOn: Build
+  jobs:
+  - deployment: DevDeployment
+    environment: dev
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+            - download: current
+              artifact: drop
+            - task: AzureRmWebAppDeployment@5
+              inputs:
+                ConnectionType: 'AzureRM'
+                azureSubscription: 'ADO_Demo'
+                appType: 'webAppLinux'
+                WebAppName: 'dev21'
+                packageForLinux: '$(Pipeline.Workspace)/drop/pythonapp.zip'
+                RuntimeStack: 'PYTHON|3.9'
+                StartupCommand: 'python app.py'
+                DeploymentTypeLinux: 'oneDeploy'

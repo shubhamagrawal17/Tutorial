@@ -1,0 +1,12 @@
+apiVersion: v1  ## Uses the core Kubernetes API.
+kind: Service   ##  Defines a Service, which enables communication between components inside the cluster.
+metadata:
+  name: my-app-service ## The name of the Service.
+spec:
+  selector:            ## Matches Pods with the label app: my-app.
+    app: my-app        ## Any Pod with this label will be part of the Service.
+  ports:
+  - protocol: TCP      ## Uses the TCP protocol (default for HTTP).
+    port: 80           ## The port on the Service that other components will use.
+    targetPort: 80     ## The port on the Pod where traffic is directed.
+  type: ClusterIP      ## The Service is only accessible inside the cluster.

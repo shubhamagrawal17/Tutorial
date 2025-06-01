@@ -1,0 +1,15 @@
+apiVersion: cert-manager.io/v1  # API version used by cert-manager.
+kind: Certificate               # Defines a certificate resource that cert-manager will manage.
+metadata:
+  name: my-tls-cert             # The name of the certificate resource.
+  namespace: default            # The namespace where this certificate is created.
+spec:
+  secretName: tls-secret        # Secret for Storing Certificate
+  issuerRef:
+    name: letsencrypt-prod      #  Refers to a ClusterIssuer named letsencrypt-prod. This issuer is responsible for requesting and managing the certificate.
+    kind: ClusterIssuer         # Specifies that the issuer is cluster-wide (not namespace-scoped like an Issuer).
+  dnsNames:
+    - thejourneyofdevops.com # This certificate will be valid for this domain.
+
+### Apply the Certificate - kubectl apply -f certificate.yaml
+## Check the status: kubectl describe certificate my-tls-cert

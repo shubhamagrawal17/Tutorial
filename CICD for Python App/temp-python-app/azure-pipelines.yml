@@ -1,0 +1,8 @@
+trigger:
+  branches:
+    include:
+      - main
+stages:
+  - template: pipelines/build.yml
+  - template: pipelines/deploy_dev.yml
+  - template: pipelines/deploy-prod.yml

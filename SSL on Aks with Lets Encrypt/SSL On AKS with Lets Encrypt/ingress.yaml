@@ -1,0 +1,26 @@
+apiVersion: networking.k8s.io/v1  # Uses the Kubernetes networking API for Ingress.
+kind: Ingress                     # Defines an Ingress resource, which manages external HTTP(S) access to services inside the cluster.
+metadata:
+  name: my-app-ingress            # The name of the Ingress.
+  annotations:
+    kubernetes.io/ingress.class: azure/application-gateway # Specifies that Azure Application Gateway will be used as the Ingress controller.
+    cert-manager.io/cluster-issuer: letsencrypt-prod  # Uses Let's Encrypt via cert-manager to issue TLS certificates.
+    cert-manager.io/acme-challenge-type: http01       # Uses the HTTP-01 ACME challenge method for certificate validation.
+    cert-manager.io/duration: 90d                     # Valid for 90 days
+    cert-manager.io/renew-before: 15d                 # Renew 15 days before expiry
+spec:
+  tls:                      # specifies that TLS will be enabled for thejourneyofdevops.com.
+  - hosts:
+    - thejourneyofdevops.com
+    secretName: tls-secret  # The TLS certificate and private key will be stored in this Kubernetes Secret
+  rules:
+  - host: thejourneyofdevops.com # Defines the domain name that this Ingress will handle.
+    http:
+      paths:                     # Routes traffic based on the request path.
+      - path: /                  # Routes all requests (/, /home, /about, etc.).
+        pathType: Prefix         # Matches any URL starting with /.
+        backend:
+          service:
+            name: my-app-service  # Requests matching / are forwarded to the my-app-service.
+            port:
+              number: 80          # The service listens on port 80.

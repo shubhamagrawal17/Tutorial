@@ -1,0 +1,41 @@
+# Deployment for the ASP.NET Core application
+apiVersion: apps/v1           # Specifies the API version to use for the Deployment object, which is part of apps/v1
+kind: Deployment              # Defines this resource as a Deployment object
+metadata:
+  name: my-aspnet-app         # Name of the Deployment, which helps to uniquely identify this Deployment
+spec:
+  replicas: 1                 # Specifies the number of pod replicas to run. Here it's set to 1 instance of the ASP.NET Core app
+  selector:
+    matchLabels:
+      app: my-aspnet-app      # Selector ensures that the pods matching this label will be managed by this Deployment
+  template:
+    metadata:
+      labels:
+        app: my-aspnet-app    # Labels help Kubernetes identify the pods belonging to this Deployment
+    spec:
+      containers:             # Defines the container(s) that will run inside the pod
+      - name: my-aspnet-app   # Name of the container running the ASP.NET Core app
+        image: myacr1991.azurecr.io/my-app:860  # Specifies the Docker image from your Azure Container Registry (ACR) with tag `860`
+        env:                  # Environment variables to be passed to the container
+        - name: KEYVAULTNAME
+          value: "demokey4783"  # This sets the environment variable `KEYVAULTNAME` with the value "demokey4783", representing the Key Vault name
+        - name: SECRET
+          value: "demo"        # This sets the environment variable `SECRET` to "demo", which is likely the name of a secret to fetch from Key Vault
+        ports:
+        - containerPort: 80    # Defines the port inside the container that will be exposed (port 80 for HTTP traffic)
+      nodeSelector:
+        kubernetes.io/os: linux  # Ensures that the pod is scheduled to run on Linux nodes
+
+---
+# Service to expose the application externally
+apiVersion: v1                 # Specifies the API version for the Service object, part of core v1
+kind: Service                  # Defines this resource as a Service object
+metadata:
+  name: my-aspnet-app-service  # Name of the Service that exposes the ASP.NET Core application
+spec:
+  type: LoadBalancer           # Specifies that the Service should provision an external IP address (for external access)
+  ports:
+    - port: 80                # External port that the Service will expose
+      targetPort: 80          # Port on the container (inside the pod) that the Service will forward traffic to
+  selector:
+    app: my-aspnet-app        # Selector ensures that this Service routes traffic to pods with this label, matching the Deployment's pods

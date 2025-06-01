@@ -1,0 +1,11 @@
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+helm repo update
+helm install nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace
+helm upgrade nginx-ingress ingress-nginx/ingress-nginx --namespace ingress-nginx --set controller.service.annotations."service\.beta\.kubernetes\.io/azure-load-balancer-health-probe-request-path"=/healthz --set controller.service.externalTrafficPolicy=Local
+Get the Public IP of the Ingress Controller
+kubectl get svc -n ingress-nginx
+Note the EXTERNAL-IP of the nginx-ingress-controller.
+
+Update Your DNS:20.244.58.131
+
+Point your domain (e.g., myapp.example.com) to the ingress controller's public IP.
