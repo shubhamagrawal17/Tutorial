@@ -1,6 +1,6 @@
 Here is the content converted into a proper `README.md` file format:
 
-````markdown
+
 # EBS Volume Test on EKS Pod
 
 This guide demonstrates how to interact with an AWS EBS volume mounted inside a Kubernetes Pod running on EKS.
