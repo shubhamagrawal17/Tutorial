@@ -1,0 +1,19 @@
+apiVersion: storage.k8s.io/v1
+kind: StorageClass
+metadata:
+  name: ebs-sc                                 # Name of the StorageClass
+
+provisioner: ebs.csi.aws.com                   # CSI provisioner for AWS EBS
+
+parameters:
+  type: gp3                                    # EBS volume type (gp3 is modern, faster, and more cost-efficient)
+  fsType: ext4                                 # File system to format the volume with
+
+volumeBindingMode: WaitForFirstConsumer        # Waits until a pod is scheduled before provisioning the volume
+
+reclaimPolicy: Delete                          # Deletes the EBS volume when the PVC is deleted
+
+# Notes:
+# - gp3 is preferred over gp2 for better baseline performance and lower cost.
+# - WaitForFirstConsumer helps align EBS volume provisioning with pod scheduling zones.
+# - Delete removes the volume with the PVC; use 'Retain' if you want to preserve data after PVC deletion.

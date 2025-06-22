@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: ebs-app-service                     # Name of the Service
+spec:
+  selector:
+    app: ebs-app                            # Must match the label in your Pod (metadata.labels.app)
+  ports:
+    - protocol: TCP
+      port: 80                              # Externally exposed port on the LoadBalancer
+      targetPort: 80                        # Port your container listens on inside the Pod
+  type: LoadBalancer                        # Provisions an AWS Elastic Load Balancer (ELB)
+
+# What this Service does:
+# - Creates an AWS-managed ELB to expose your application to the internet.
+# - Forwards incoming HTTP traffic on port 80 to your NGINX container's port 80.
+# - Once deployed, use the command below to get the public endpoint:
+#     kubectl get svc ebs-app-service

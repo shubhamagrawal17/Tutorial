@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: ebs-pvc                             # Name of the PVC
+spec:
+  accessModes:
+    - ReadWriteOnce                         # EBS volumes support only single-node access
+  storageClassName: ebs-sc                  # References the StorageClass defined earlier
+  resources:
+    requests:
+      storage: 5Gi                          # Request 5 GiB of EBS-backed persistent storage
+
+# Notes:
+# - ReadWriteOnce (RWO) is the only supported access mode for AWS EBS — a volume can be mounted by only one node at a time.
+# - The storageClassName must match your StorageClass (e.g., ebs-sc from 02-ebs-storage-class.yaml).
+# - Once this PVC is applied, Kubernetes dynamically provisions and binds an EBS volume to it using the CSI driver.

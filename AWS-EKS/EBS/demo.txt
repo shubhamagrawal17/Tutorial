@@ -1,0 +1,7 @@
+## Execute a command inside the ebs-app pod to create a file on the mounted EBS volume
+## kubectl exec -it ebs-app -- sh -c "echo 'This is a test from the nginx pod!' > /data/demo.txt"
+## Note: Using sh -c because nginx often doesn't have bash.
+## Verify the File Exists - kubectl exec -it ebs-app -- cat /data/demo.txt
+# Expected output: This is a test from the nginx pod!
+list the contents of the directory - kubectl exec -it ebs-app -- ls -l /data/
+S4KKLAoPb/5J/0QSNV3+s4qvCVQukpX4Lz1txYPE

@@ -1,0 +1,24 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: my-eks-cluster                      # Name of your EKS cluster
+  region: ap-south-1                        # AWS region (Mumbai)
+
+iam:
+  withOIDC: true                            # Enables OIDC provider (required for IRSA / Pod Identity)
+                                            # Use this to migrate to EKS Pod Identity later:
+                                            # eksctl utils migrate-to-pod-identity --cluster my-eks-cluster --region ap-south-1 --approve
+
+addons:
+  - name: aws-ebs-csi-driver                # Adds the EBS CSI driver to your cluster
+    attachPolicyARNs:
+      - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy  # Required IAM policy for EBS CSI
+
+nodeGroups:
+  - name: ng-1                              # Name of the node group
+    instanceType: t3.medium                 # EC2 instance type for worker nodes
+    desiredCapacity: 1                      # Number of worker nodes to launch
+    volumeSize: 20                          # Root volume size (in GiB) for each node
+    ssh:
+      allow: true                           # Allow SSH access from your IP (optional)
