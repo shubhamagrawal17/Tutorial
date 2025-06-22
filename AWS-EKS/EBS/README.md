@@ -53,5 +53,4 @@ You've now:
 
 ```
 
-Let me know if you'd like me to save this into an actual `README.md` file or export it as a PDF.
 ```
