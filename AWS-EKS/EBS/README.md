@@ -13,8 +13,6 @@ Execute the following command to create a test file on the mounted EBS volume:
 kubectl exec -it ebs-app -- sh -c "echo 'This is a test from the nginx pod!' > /data/demo.txt"
 ````
 
-> **Note:** We use `sh -c` because the `nginx` container image typically does not include `bash`.
-
 ---
 
 ## 2. Verify the File Exists
