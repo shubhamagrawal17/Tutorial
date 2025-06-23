@@ -1,23 +1,14 @@
-Here is the content converted into a proper `README.md` file format:
+## 💾 Writing to EBS Volume from a Pod
 
+### ✅ Create a File on the Mounted EBS Volume
 
-# EBS Volume Test on EKS Pod
-
-This guide demonstrates how to interact with an AWS EBS volume mounted inside a Kubernetes Pod running on EKS.
-
-## 1. Create a File Inside the Pod
-
-Execute the following command to create a test file on the mounted EBS volume:
+Use the following command to create a file inside the `ebs-app` pod:
 
 ```bash
 kubectl exec -it ebs-app -- sh -c "echo 'This is a test from the nginx pod!' > /data/demo.txt"
-````
+```
 
----
-
-## 2. Verify the File Exists
-
-Read the contents of the created file to confirm that the write operation was successful:
+### ✅ Verify the File Exists
 
 ```bash
 kubectl exec -it ebs-app -- cat /data/demo.txt
@@ -31,26 +22,30 @@ This is a test from the nginx pod!
 
 ---
 
-## 3. List the Contents of the Directory
-
-To list all files in the mounted `/data` directory:
+### 📂 List Contents of the `/data/` Directory
 
 ```bash
 kubectl exec -it ebs-app -- ls -l /data/
 ```
 
-This verifies that the file `demo.txt` exists and that the volume is functioning correctly.
-
 ---
 
-## Summary
+## 🔄 Migrate to Pod Identity (EKS)
 
-You've now:
+To migrate your EKS cluster to use Pod Identity:
 
-* Created a file on an EBS volume from inside a pod.
-* Verified data persistence.
-* Explored the contents of the mounted volume.
-
+```bash
+eksctl utils migrate-to-pod-identity --cluster my-eks-cluster --region ap-south-1 --approve
 ```
 
-```
+### 🛠️ What This Command Does:
+
+* Installs the `eks-pod-identity-agent` addon (if not already present).
+* Updates IAM trust policies for:
+
+  * `aws-ebs-csi-driver`
+  * `vpc-cni` (if detected using IRSA)
+* Simplifies trust policies by removing tight coupling with OIDC provider URL.
+* Reconfigures the addons to use **Pod Identity Associations**.
+
+---
