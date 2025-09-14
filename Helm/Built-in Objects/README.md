@@ -7,6 +7,7 @@ This document provides an overview of commonly used Helm template objects and ho
 
 ## Root Object
 ```
+{{/* Root Object  */}}
 Root Object: {{ . }}
 ```
 
