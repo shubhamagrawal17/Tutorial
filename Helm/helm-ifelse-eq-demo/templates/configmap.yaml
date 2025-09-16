@@ -1,0 +1,15 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: demo-config
+data:
+  environment: |-
+    {{- if eq .Values.env "dev" }}
+    Development Environment
+    {{- else if eq .Values.env "staging" }}
+    Staging Environment
+    {{- else if eq .Values.env "prod" }}
+    Production Environment
+    {{- else }}
+    Unknown Environment
+    {{- end }}
