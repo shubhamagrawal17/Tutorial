@@ -1,5 +1,3 @@
-Here’s a clean `README.md` version of your demo instructions:
-
 ````markdown
 # Helm if/else with `eq` Demo
 
@@ -62,8 +60,4 @@ helm template myapp . --set env=test
   environment: |-
     Unknown Environment
   ```
-
-```
-
----
 
