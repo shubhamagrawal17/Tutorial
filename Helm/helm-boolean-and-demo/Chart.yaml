@@ -1,0 +1,6 @@
+apiVersion: v2
+name: helm-boolean-and-demo
+description: A Helm chart demo for if/else with boolean and AND function
+type: application
+version: 0.1.0
+appVersion: "1.0"

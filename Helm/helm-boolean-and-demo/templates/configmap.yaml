@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: boolean-and-demo-config
+data:
+  message: |-
+    {{- if and .Values.featureEnabled (eq .Values.env "prod") }}
+    Feature is enabled in Production Environment
+    {{- else if and .Values.featureEnabled (eq .Values.env "staging") }}
+    Feature is enabled in Staging Environment
+    {{- else }}
+    Feature is disabled or not in Production/Staging
+    {{- end }}
