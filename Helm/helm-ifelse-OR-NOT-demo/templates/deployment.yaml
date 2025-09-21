@@ -1,0 +1,29 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: myapp
+spec:
+  replicas: |
+    {{- if or (eq .Values.environment "dev") (eq .Values.environment "test") }}
+    2
+    {{- else if eq .Values.environment "prod" }}
+    5
+    {{- else if not (or (eq .Values.environment "dev") (eq .Values.environment "test") (eq .Values.environment "prod")) }}
+    1
+    {{- end }}
+  selector:
+    matchLabels:
+      app: myapp
+  template:
+    metadata:
+      labels:
+        app: myapp
+    spec:
+      containers:
+        - name: main-app
+          image: nginx
+          ports:
+            - containerPort: 80
+
+### With or, just one of them being true is enough.
+### The not means this block runs only when none of them are true.
