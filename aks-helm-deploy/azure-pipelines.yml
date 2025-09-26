@@ -1,0 +1,88 @@
+# azure-pipelines.yml
+
+trigger:
+  - main
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  imageRepository: 'my-app' # The name of your Docker image in ACR
+  dockerRegistryServiceConnection: 'MyAzureACR' # Your Azure Container Registry service connection name
+  aksServiceConnection: 'Azure service connection' # Your AKS cluster service connection name
+  helmChartPath: 'helm/my-app' # The path to your Helm chart directory
+  helmReleaseName: 'my-app-release' # The name for your Helm deployment release
+  namespace: 'default' # The Kubernetes namespace to deploy to
+
+stages:
+- stage: BuildAndPublish
+  displayName: Build and Publish Artifacts
+  jobs:
+  - job: BuildJob
+    displayName: Build Container and Helm Chart
+    steps:
+    - task: Docker@2
+      displayName: Build and Push Docker Image
+      inputs:
+        containerRegistry: '$(dockerRegistryServiceConnection)'
+        repository: '$(imageRepository)'
+        command: 'buildAndPush'
+        Dockerfile: 'app/Dockerfile'
+        tags: |
+          $(Build.BuildId)
+          latest
+
+    - task: HelmInstaller@1
+      displayName: Install Helm
+      inputs:
+        helmVersionToInstall: '3.11.0'
+
+    - script: |
+        helm package $(helmChartPath) --version $(Build.BuildId)
+      displayName: Package Helm Chart
+
+    - task: PublishBuildArtifacts@1
+      displayName: Publish Helm Chart Artifact
+      inputs:
+        PathtoPublish: '$(System.DefaultWorkingDirectory)/my-app-$(Build.BuildId).tgz' # Path to the packaged chart
+        ArtifactName: 'helm-chart'
+        publishLocation: 'Container'
+
+- stage: DeployToAKS
+  displayName: Deploy to AKS
+  dependsOn: BuildAndPublish
+  condition: succeeded()
+  jobs:
+  - deployment: DeployJob
+    displayName: Deploy with Helm to AKS
+    environment: 'MyAKSCluster' # Reference your AKS environment resource in Azure DevOps
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: DownloadBuildArtifacts@1
+            displayName: Download Helm Chart
+            inputs:
+              buildType: 'current'
+              artifactName: 'helm-chart'
+              downloadType: 'single'
+              downloadPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: HelmInstaller@1
+            displayName: Install Helm on Agent
+            inputs:
+              helmVersionToInstall: '3.11.0'
+
+          - task: HelmDeploy@0
+            displayName: Helm Upgrade/Install
+            inputs:
+              azureSubscription: '$(aksServiceConnection)'
+              azureResourceGroup: 'demo' # Replace with your AKS resource group
+              kubernetesCluster: 'my-aks-cluster' # Replace with your AKS cluster name
+              command: 'upgrade'
+              chartType: 'FilePath'
+              chartPath: '$(System.DefaultWorkingDirectory)/helm-chart/my-app-$(Build.BuildId).tgz'
+              releaseName: '$(helmReleaseName)'
+              namespace: '$(namespace)'
+              arguments: '--install' # Use --install to create the release if it doesn't exist
+              overrideValues: 'image.tag=$(Build.BuildId),image.repository=myacr1212.azurecr.io/$(imageRepository)'

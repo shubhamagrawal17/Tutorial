@@ -1,0 +1,16 @@
+# Default values for the my-app Helm chart.
+# These values can be overridden during deployment using the --set flag or a custom values file.
+
+replicaCount: 1
+
+image:
+  repository: my-azure-acr/my-app  # Replace with your Azure Container Registry name
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"                   # The pipeline will override this with the Git SHA or build ID
+
+service:
+  type: LoadBalancer             # The crucial change: Use LoadBalancer for external access
+  port: 80                       # The public port for the LoadBalancer
+
+container:
+  port: 3000                     # The internal port that your application listens on
