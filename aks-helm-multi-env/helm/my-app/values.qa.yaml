@@ -1,0 +1,18 @@
+# values.qa.yaml
+
+# Create the namespace for the QA environment
+namespace:
+  create: true
+  name: 'qa'
+
+# Override the service type for external access in QA
+service:
+  type: LoadBalancer
+  port: 80
+
+# Specify the internal container port
+container:
+  port: 3000
+
+# Increase the replica count for QA to 2
+replicaCount: 2

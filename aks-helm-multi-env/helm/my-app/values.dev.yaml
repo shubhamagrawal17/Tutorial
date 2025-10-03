@@ -1,0 +1,18 @@
+# values.dev.yaml
+
+# Create the namespace for the Dev environment
+namespace:
+  create: true
+  name: 'dev'
+
+# Override the service type for external access in dev
+service:
+  type: LoadBalancer
+  port: 80
+
+# Specify the internal container port
+container:
+  port: 3000
+
+# Keep the replica count at 1 for dev
+replicaCount: 1
