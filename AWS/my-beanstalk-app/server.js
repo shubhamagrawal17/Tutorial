@@ -8,7 +8,7 @@ const PORT = process.env.PORT || 8080;
 // Define a simple route for the root URL
 app.get('/', (req, res) => {
   console.log('Received a request!');
-  res.send('<h1>Hello from Elastic Beanstalk!</h1>');
+  res.send('<h1>Hello from Elastic Beanstalk app !</h1>');
 });
 
 // Start the server and listen on the specified port
