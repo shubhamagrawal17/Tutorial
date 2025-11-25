@@ -1,0 +1,106 @@
+trigger:
+- main
+
+variables:
+  imageName: 'demo-app'
+  acrRegistry: 'argocd211.azurecr.io'
+
+pool:
+  vmImage: 'ubuntu-latest'
+# -----------------------------------
+# STAGE 1 — Build & Push Docker Image
+# -----------------------------------
+stages:
+- stage: BuildAndPush
+  displayName: "CI — Build & Push Image"
+  jobs:
+  - job: BuildJob
+    displayName: "Build & Push Image to ACR"
+    steps:
+    - checkout: self
+
+    - task: Docker@2
+      displayName: Build and Push Image to ACR
+      inputs:
+        containerRegistry: argocd-acr   # Service connection name
+        repository: $(imageName)
+        command: buildAndPush
+        Dockerfile: Dockerfile
+        tags: |
+          $(Build.BuildId)
+          latest
+
+    # Output variable for next stage
+    - task: Bash@3
+      name: SetImageTag
+      displayName: "Set Image Tag Output"
+      inputs:
+        targetType: inline
+        script: echo "##vso[task.setvariable variable=imageTag;isOutput=true]$(Build.BuildId)"
+                      ## This is Azure DevOps' internal command syntax.
+                      ## ##vso[task.setvariable ...]
+                      ## This tells Azure DevOps:Create a pipeline variable with this name and value.
+                      ## variable=imageTag , The new variable name will be:imageTag
+                      ## isOutput=true, This makes the variable available outside this job, so another job or stage can use it.
+                      ## $(Build.BuildId), This is the value assigned to the variable.
+
+
+# -----------------------------------
+# STAGE 2 — Update GitOps Repo
+# -----------------------------------
+- stage: UpdateGitOps
+  displayName: "CD — Update GitOps Repo"
+  dependsOn: BuildAndPush
+  condition: succeeded()
+
+  variables:
+    imageTag: $[ stageDependencies.BuildAndPush.BuildJob.outputs['SetImageTag.imageTag'] ]
+              ## Getting the imageTag value that was created in Stage 1 → Make it usable inside Stage 2.
+
+  jobs:
+  - job: UpdateGitOpsJob
+    displayName: "Commit Updated Image Tag to GitOps Repo"
+
+    steps:
+    - checkout: none   # We don't need main repo here
+
+    - task: Bash@3
+      displayName: "Clone & Update GitOps Repo"
+      env:
+        GITOPS_PAT_SECRET: $(GITOPS_PAT)
+      inputs:
+        targetType: inline
+        script: |
+          export GIT_CLONE_DIR="gitops-local" 
+
+          # creates an environment variable named GIT_CLONE_DIR, and sets its value to:gitops-local
+          export K8S_DEPLOYMENT_PATH="k8s/deployment.yaml"
+
+          echo "Configuring git identity..."
+          git config --global user.email "pipeline@devops.com"
+          git config --global user.name "Azure DevOps Pipeline"
+
+          echo "Cloning GitOps repo..."
+          GIT_URL="https://x:${GITOPS_PAT_SECRET}@dev.azure.com/Learnazure162022/AzureDevOps/_git/gitops-repo" 
+
+          # x: A placeholder username, In Azure DevOps, username can be anything when using PAT.
+          # ${GITOPS_PAT_SECRET} This is your PAT (Personal Access Token), stored as a secret variable in Azure DevOps:
+          git clone $GIT_URL $GIT_CLONE_DIR
+          cd $GIT_CLONE_DIR
+          git checkout main
+
+          FULL_IMAGE="$(acrRegistry)/$(imageName):$(imageTag)"
+          echo "Updating deployment file with new image → $FULL_IMAGE"
+          sed -i "s|image: .*|image: ${FULL_IMAGE}|" $K8S_DEPLOYMENT_PATH
+          # Runs the sed (stream editor) command
+          # -i = edit the file in place (overwrite the file)
+          # s|image: .*|- Find any line that starts with image: followed by anything (.* = any characters)
+          # Replace pattern: image: ${FULL_IMAGE}, This replaces the entire line with:
+          # |" $K8S_DEPLOYMENT_PATH - | characters separate the sed command sections
+          # $K8S_DEPLOYMENT_PATH = path to your manifest
+          git add $K8S_DEPLOYMENT_PATH
+          git commit -m "Update image to ${FULL_IMAGE} via Azure Pipeline"
+          
+          git push origin main
+
+          echo "GitOps update completed!"
