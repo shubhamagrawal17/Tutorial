@@ -53,6 +53,15 @@ argocd cluster add my-aks-cluster --insecure
 kubectl config get-contexts
 ```
 
+## . Install Argo Rollouts
+
+```bash
+kubectl create namespace argo-rollouts
+```
+```bash
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+```
+
 ```
 
 ---
