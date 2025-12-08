@@ -1,20 +1,81 @@
-# Introduction 
-TODO: Give a short introduction of your project. Let this section explain the objectives or the motivation behind this project. 
+---
 
-# Getting Started
-TODO: Guide users through getting your code up and running on their own system. In this section you can talk about:
-1.	Installation process
-2.	Software dependencies
-3.	Latest releases
-4.	API references
+````md
+# Argo CD Installation — Step-by-Step
 
-# Build and Test
-TODO: Describe and show how to build your code and run the tests. 
+## 1. Create the `argocd` Namespace
+```bash
+kubectl create namespace argocd
+````
 
-# Contribute
-TODO: Explain how other users and developers can contribute to make your code better. 
+## 2. Install Argo CD
 
-If you want to learn more about creating good readme files then refer the following [guidelines](https://docs.microsoft.com/en-us/azure/devops/repos/git/create-a-readme?view=azure-devops). You can also seek inspiration from the below readme files:
-- [ASP.NET Core](https://github.com/aspnet/Home)
-- [Visual Studio Code](https://github.com/Microsoft/vscode)
-- [Chakra Core](https://github.com/Microsoft/ChakraCore)
+```bash
+kubectl apply -n argocd -f https://raw.githubusercontent.com/argoproj/argo-cd/stable/manifests/install.yaml
+```
+
+## 3. Expose Argo CD Server (LoadBalancer)
+
+```bash
+kubectl patch svc argocd-server -n argocd -p "{\"spec\": {\"type\": \"LoadBalancer\"}}"
+```
+
+## 4. Get Argo CD Server External IP
+
+```bash
+kubectl get svc -n argocd argocd-server
+```
+
+## 5. Get Initial Admin Password
+
+```bash
+kubectl get secret argocd-initial-admin-secret -n argocd -o yaml
+```
+
+## 6. Decode the Password (PowerShell Example)
+
+```powershell
+[System.Text.Encoding]::UTF8.GetString([System.Convert]::FromBase64String("bDg0Wm5EVXlzTEE2R0NmbA=="))
+```
+
+## 7. Log in to Argo CD Server & Add Cluster
+
+```bash
+argocd login 4.213.212.101
+argocd cluster add my-aks-cluster --insecure
+```
+
+## 8. Verify Cluster Contexts
+
+```bash
+kubectl config get-contexts
+```
+
+## . Install Argo Rollouts
+
+```bash
+kubectl create namespace argo-rollouts
+```
+```bash
+kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
+```
+## . Create Namespace where Resources will be deployed.
+
+```bash
+kubectl create namespace production
+```
+
+## . Install Nginx Ingress Controller
+
+```bash
+helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
+```
+```bash
+helm repo update
+```
+```bash
+helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.replicaCount=2 --set controller.nodeSelector."kubernetes\.io/os"=linux  --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux
+```
+
+---
+```
