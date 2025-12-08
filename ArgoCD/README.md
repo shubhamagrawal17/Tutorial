@@ -61,6 +61,11 @@ kubectl create namespace argo-rollouts
 ```bash
 kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/releases/latest/download/install.yaml
 ```
+## . Create Namespace where Resources will be deployed.
+
+```bash
+kubectl create namespace production
+```
 
 ```
 
