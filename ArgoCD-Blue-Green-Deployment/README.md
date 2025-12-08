@@ -75,5 +75,15 @@ helm repo update
 helm install ingress-nginx ingress-nginx/ingress-nginx --namespace ingress-nginx --create-namespace --set controller.replicaCount=2 --set controller.nodeSelector."kubernetes\.io/os"=linux  --set defaultBackend.nodeSelector."kubernetes\.io/os"=linux
 ```
 
+## How to verify which service your application is pointing to
+
+## Check the Rollout configuration
+
+```bash
+kubectl get rollout -n production
+```
+```bash
+kubectl describe rollout <rollout-name>
+```
 ---
 ```
