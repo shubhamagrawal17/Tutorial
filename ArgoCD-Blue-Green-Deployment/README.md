@@ -49,7 +49,7 @@ argocd cluster add my-aks-cluster --insecure
 kubectl config get-contexts
 ```
 
-## . Install Argo Rollouts
+## Install Argo Rollouts
 
 ```bash
 kubectl create namespace argo-rollouts
