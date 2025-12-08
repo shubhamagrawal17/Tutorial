@@ -63,7 +63,7 @@ kubectl apply -n argo-rollouts -f https://github.com/argoproj/argo-rollouts/rele
 kubectl create namespace production
 ```
 
-## . Install Nginx Ingress Controller
+## Install Nginx Ingress Controller
 
 ```bash
 helm repo add ingress-nginx https://kubernetes.github.io/ingress-nginx
