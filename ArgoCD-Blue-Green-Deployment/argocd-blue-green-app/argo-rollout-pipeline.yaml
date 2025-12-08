@@ -1,0 +1,165 @@
+trigger:
+- main
+
+variables:
+  imageName: 'demo-app'
+  acrRegistry: 'argocd211.azurecr.io'
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+
+# ============================
+# STAGE 1 — BUILD & PUSH IMAGE
+# ============================
+stages:
+- stage: BuildAndPush
+  displayName: "CI — Build & Push Image"
+  jobs:
+  - job: BuildJob
+    displayName: "Build & Push Image to ACR"
+    steps:
+      - checkout: self
+
+      - task: Docker@2
+        displayName: Build and Push Image to ACR
+        inputs:
+          containerRegistry: acr-connection
+          repository: $(imageName)
+          command: buildAndPush
+          Dockerfile: Dockerfile
+          tags: |
+            $(Build.BuildId)
+            latest
+
+      # Output the BuildId to use as the image tag in the next stage
+      - task: Bash@3
+        name: SetImageTag
+        displayName: "Set Image Tag Output"
+        inputs:
+          targetType: inline
+          script: echo "##vso[task.setvariable variable=imageTag;isOutput=true]$(Build.BuildId)"
+
+
+# ====================================
+# STAGE 2 — UPDATE GITOPS (ROLLOUT TAG)
+# ====================================
+- stage: UpdateGitOps
+  displayName: "CD — Update Rollout Manifest"
+  dependsOn: BuildAndPush
+  condition: succeeded()
+
+  variables:
+    imageTag: $[ stageDependencies.BuildAndPush.BuildJob.outputs['SetImageTag.imageTag'] ]
+
+  jobs:
+  - job: UpdateGitOpsJob
+    displayName: "Commit Updated Image Tag to Rollout Repo"
+
+    steps:
+      - checkout: none # We don't need the application code repo here
+
+      - task: Bash@3
+        env:
+          GITOPS_PAT_SECRET: $(GITOPS_PAT)
+        displayName: "Clone & Update Rollout Image Tag"
+        inputs:
+          targetType: inline
+          script: |
+            export GIT_CLONE_DIR="gitops-local"
+
+            echo "Configuring git..."
+            git config --global user.email "pipeline@devops.com"
+            git config --global user.name "Azure Pipeline Bot"
+
+            echo "Cloning GitOps repo..."
+            GIT_URL="https://x:${GITOPS_PAT_SECRET}@dev.azure.com/Learnazure162022/AzureDevOps/_git/argocd-blue-green-manifests"
+            git clone $GIT_URL $GIT_CLONE_DIR
+            cd $GIT_CLONE_DIR
+            git checkout main
+
+            FULL_IMAGE="$(acrRegistry)/$(imageName):$(imageTag)"
+            echo "Updating Rollout with new image: $FULL_IMAGE"
+
+            #KEY CHANGE: Update ONLY the image tag in the Rollout manifest
+            # This triggers Argo CD to deploy the new Green Preview Pods
+            sed -i "s|image: argocd211.azurecr.io/demo-app:.*|image: ${FULL_IMAGE}|" argo-rollout/rollout.yaml 
+
+            git add argo-rollout/rollout.yaml
+            git commit -m "Update Rollout image to ${FULL_IMAGE} via pipeline"
+            git push origin main
+
+            echo "Rollout update completed. Argo CD is deploying the Preview Pods."
+
+
+# =================================================
+# STAGE 3 — PROMOTE (TRAFFIC SWITCH STEP VIA ARGO ROLLOUTS)
+# =================================================
+- stage: Promote
+  displayName: "Blue → Green Promotion Stage"
+  dependsOn: UpdateGitOps
+  condition: succeeded()
+
+  jobs:
+
+    # -----------------------------------------------
+    # JOB 1 — Manual Approval (Server Job)
+    # -----------------------------------------------
+    - job: WaitForApproval
+      displayName: "Approval Before Traffic Switch"
+      pool: server
+      steps:
+        - task: ManualValidation@0
+          timeoutInMinutes: 60
+          displayName: "Approval Required Before Switching Traffic"
+          inputs:
+            notifyUsers: 'subhek.agrawal@gmail.com'
+            instructions: 'The new version is deployed to /staging. Verify and approve to switch LIVE traffic to the new version.'
+
+    # -----------------------------------------------
+    # JOB 2 — Promote Rollout (Agent Job)
+    # -----------------------------------------------
+    - job: PromoteRollout
+      displayName: "Promote Rollout (Switch Traffic)"
+      dependsOn: WaitForApproval   # Runs only after approval
+      pool:
+        vmImage: 'ubuntu-latest'
+      steps:
+        - checkout: none
+
+        # Step 1: Install Argo Rollouts CLI
+        - task: Bash@3
+          displayName: "Install Argo Rollouts CLI"
+          inputs:
+            targetType: inline
+            script: |
+              curl -LO https://github.com/argoproj/argo-rollouts/releases/latest/download/kubectl-argo-rollouts-linux-amd64
+              chmod +x kubectl-argo-rollouts-linux-amd64
+              sudo mv kubectl-argo-rollouts-linux-amd64 /usr/local/bin/kubectl-argo-rollouts
+              kubectl-argo-rollouts version
+
+        # Step 2: Configure kubectl to use AKS cluster
+        - task: AzureCLI@2
+          displayName: "Get AKS Credentials"
+          inputs:
+            azureSubscription: 'Pay-As-You-Go(7ac653af-41d9-4346-be6d-9047d5d378ab)'
+            scriptType: 'bash'
+            scriptLocation: 'inlineScript'
+            inlineScript: |
+              az aks get-credentials --resource-group demo --name my-aks-cluster --overwrite-existing
+
+        # Step 3: Promote the rollout
+        - task: Bash@3
+          displayName: "Promote Argo Rollout"
+          inputs:
+            targetType: inline
+            script: |
+              kubectl-argo-rollouts promote demo-app-rollout -n production
+
+        # Step 4: Confirmation
+        - task: Bash@3
+          displayName: "Promotion Confirmation"
+          inputs:
+            targetType: inline
+            script: |
+              echo "Promotion complete. Argo Rollouts switched traffic successfully."

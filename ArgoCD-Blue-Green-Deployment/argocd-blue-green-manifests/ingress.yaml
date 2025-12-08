@@ -1,0 +1,31 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: demo-app-ingress-default
+  namespace: production
+  annotations:
+    nginx.ingress.kubernetes.io/rewrite-target: /
+
+spec:
+  ingressClassName: nginx
+  rules:
+    - http:
+        paths:
+
+          # STAGING / PREVIEW traffic → New Version (Green)
+          - path: /staging
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-app-svc-preview
+                port:
+                  number: 80
+
+          # LIVE / PRODUCTION traffic → Stable Version (Blue)
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: demo-app-svc
+                port:
+                  number: 80

@@ -1,0 +1,25 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-svc           # Active Service (Target for Ingress)
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    targetPort: 5000
+  selector:
+    app: demo-app
+  type: ClusterIP # or ClusterIP if NGINX is the LB target
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: demo-app-svc-preview   # Preview Service (Target for /staging path)
+  namespace: production
+spec:
+  ports:
+  - port: 80
+    targetPort: 5000
+  selector:
+    app: demo-app
+  type: ClusterIP
