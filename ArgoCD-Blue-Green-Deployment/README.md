@@ -1,6 +1,4 @@
----
 
-````md
 # Argo CD Installation — Step-by-Step
 
 ## 1. Create the `argocd` Namespace
