@@ -1,0 +1,230 @@
+trigger:
+  - main
+
+pool:
+  vmImage: ubuntu-latest
+
+variables:
+  - group: devsecops-nonprod
+  - name: pythonVersion
+    value: '3.11'
+  - name: imageName
+    value: 'devsecops-app'
+  - name: devNamespace
+    value: 'dev'
+  - name: qaNamespace
+    value: 'qa'
+  - name: prodNamespace
+    value: 'prod'
+  - name: dockerRegistryServer
+    value: 'myacrdemo1239.azurecr.io' 
+
+stages:
+# ========================================================
+# 1. Security Scans (SAST, SCA, IaC)
+# ========================================================
+- stage: SecurityScans
+  displayName: "1. Security: Code & Infrastructure"
+  jobs:
+  - job: Scans
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: $(pythonVersion)
+
+    - script: |
+        mkdir -p $(System.DefaultWorkingDirectory)/reports
+        pip install bandit pip-audit checkov jq
+      displayName: "Install Security Tools"
+
+    - script: |
+        bandit -r app -f json -o $(System.DefaultWorkingDirectory)/reports/bandit.json || true
+      displayName: "Run Bandit (SAST)"
+
+    - script: |
+        pip-audit -r requirements.txt --format json --output $(System.DefaultWorkingDirectory)/reports/pip-audit.json || true
+      displayName: "Run pip-audit (SCA)"
+
+    - script: |
+        checkov -d k8s/ --output junitxml > $(System.DefaultWorkingDirectory)/reports/checkov.xml || true
+      displayName: "Run Checkov (IaC)"
+
+    - script: |
+        set -euo pipefail
+        SUMMARY_FILE="$(Pipeline.Workspace)/security-summary.md"
+        echo "## 🛡️ Security Scan Reports" > "$SUMMARY_FILE"
+        
+        # Bandit Section
+        echo "### ✅ SAST Results (Bandit)" >> "$SUMMARY_FILE"
+        NUM_SAST=$(jq '.results | length' $(System.DefaultWorkingDirectory)/reports/bandit.json)
+        if [ "$NUM_SAST" -gt 0 ]; then
+          echo "| Severity | Issue | File |" >> "$SUMMARY_FILE"
+          echo "| :--- | :--- | :--- |" >> "$SUMMARY_FILE"
+          jq -r '.results[] | "| \(.issue_severity) | \(.issue_text) | \(.filename) |"' $(System.DefaultWorkingDirectory)/reports/bandit.json >> "$SUMMARY_FILE"
+        else
+          echo "No static analysis issues found. 🎉" >> "$SUMMARY_FILE"
+        fi
+
+        # Dependency Section (SCA) - FIXED LOGIC
+        echo "### 📦 Dependency Results (pip-audit)" >> "$SUMMARY_FILE"
+        VULN_COUNT=$(jq '[.dependencies[].vulns[]?] | length' $(System.DefaultWorkingDirectory)/reports/pip-audit.json)
+        if [ "$VULN_COUNT" -gt 0 ]; then
+          echo "| Package | Version | ID |" >> "$SUMMARY_FILE"
+          echo "| :--- | :--- | :--- |" >> "$SUMMARY_FILE"
+          jq -r '.dependencies[] | select(.vulns != null) | . as $d | .vulns[] | "| \($d.name) | \($d.version) | \(.id) |"' $(System.DefaultWorkingDirectory)/reports/pip-audit.json >> "$SUMMARY_FILE"
+        else
+          echo "No vulnerable dependencies found. ✅" >> "$SUMMARY_FILE"
+        fi
+        
+        echo "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Security Scans]$SUMMARY_FILE"
+      displayName: "Publish Security Summary"
+
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '$(System.DefaultWorkingDirectory)/reports/checkov.xml'
+        testRunTitle: 'Checkov IaC Scan'
+
+# ========================================================
+# 2. Quality - Tests & Coverage
+# ========================================================
+- stage: Tests
+  displayName: "2. Quality: Tests"
+  dependsOn: SecurityScans
+  jobs:
+  - job: Pytest
+    steps:
+    - task: UsePythonVersion@0
+      inputs:
+        versionSpec: $(pythonVersion)
+    - script: |
+        pip install -r requirements.txt pytest pytest-cov
+        export PYTHONPATH=$(System.DefaultWorkingDirectory)
+        pytest --junitxml=junit.xml --cov=app --cov-report=xml:coverage.xml --cov-fail-under=80
+      displayName: "Run Pytest"
+    - task: PublishTestResults@2
+      inputs:
+        testResultsFiles: '**/junit.xml'
+    - task: PublishCodeCoverageResults@2
+      inputs:
+        codeCoverageTool: 'Cobertura'
+        summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
+
+# ========================================================
+# 3. Build, Scan & Push (Container)
+# ========================================================
+- stage: BuildAndRelease
+  displayName: "3. Container: Build & Push"
+  dependsOn: Tests
+  jobs:
+  - job: BuildAndPush
+    steps:
+    - task: Docker@2
+      displayName: "Build Image"
+      inputs:
+        containerRegistry: 'azure-acr-connection'
+        repository: $(imageName)
+        command: build
+        tags: $(Build.BuildId)
+
+    - script: |
+        mkdir -p $(System.DefaultWorkingDirectory)/reports
+        docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+          -v $(System.DefaultWorkingDirectory)/reports:/root/ \
+          aquasec/trivy:latest image --format json --output /root/trivy.json \
+          $(dockerRegistryServer)/$(imageName):$(Build.BuildId)
+      displayName: "Trivy Scan"
+
+    - script: |
+        REPORT="$(System.DefaultWorkingDirectory)/reports/trivy.json"
+        SUMMARY_FILE="$(Pipeline.Workspace)/trivy-summary.md"
+        echo "## 🐳 Container Scan (Trivy)" > "$SUMMARY_FILE"
+        TRIVY_VULNS=$(jq '[.Results[]?.Vulnerabilities[]?] | length' $REPORT)
+        if [ "$TRIVY_VULNS" -gt 0 ]; then
+          echo "| Severity | Library | ID |" >> "$SUMMARY_FILE"
+          echo "| :--- | :--- | :--- |" >> "$SUMMARY_FILE"
+          jq -r '.Results[]?.Vulnerabilities[]? | "| \(.Severity) | \(.PkgName) | \(.VulnerabilityID) |"' $REPORT | head -n 10 >> "$SUMMARY_FILE"
+        else
+          echo "No container vulnerabilities found. 🚀" >> "$SUMMARY_FILE"
+        fi
+        echo "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Container Security]$SUMMARY_FILE"
+      displayName: "Publish Trivy Summary"
+
+    - task: Docker@2
+      displayName: "Push Image"
+      inputs:
+        containerRegistry: 'azure-acr-connection'
+        repository: $(imageName)
+        command: push
+        tags: $(Build.BuildId)
+    - task: PublishPipelineArtifact@1
+      displayName: "Publish K8s Manifests"
+      inputs:
+        targetPath: '$(System.DefaultWorkingDirectory)/k8s'
+        artifact: 'manifests'
+        publishLocation: 'pipeline'
+
+# ========================================================
+# 4. Deployment - Dev
+# ========================================================
+- stage: DeployDev
+  displayName: "4. Deploy: Dev"
+  dependsOn: BuildAndRelease
+  jobs:
+  - deployment: DevDeploy
+    environment: 'development'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+
+          - task: KubernetesManifest@0
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: $(k8sConnection)
+              namespace: $(devNamespace)
+              # Using the wildcard at the start handles if the 's' folder 
+              # is nested differently than expected
+              manifests: '$(Pipeline.Workspace)/manifests/*.y*ml'
+              containers: '$(dockerRegistryServer)/$(imageName):$(Build.BuildId)'
+
+# ========================================================
+# 5. Deployment - QA
+# ========================================================
+- stage: DeployQA
+  displayName: "5. Deploy: QA"
+  dependsOn: DeployDev
+  jobs:
+  - deployment: QADeploy
+    environment: 'testing'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: 'aks-service-connection'
+              namespace: $(qaNamespace)
+              manifests: '$(Pipeline.Workspace)/manifests/*.y*ml'
+              containers: '$(dockerRegistryServer)/$(imageName):$(Build.BuildId)'
+
+# ========================================================
+# 6. Deployment - Production
+# ========================================================
+- stage: DeployProd
+  displayName: "6. Deploy: Prod"
+  dependsOn: DeployQA
+  jobs:
+  - deployment: ProdDeploy
+    environment: 'production'
+    strategy:
+      runOnce:
+        deploy:
+          steps:
+          - task: KubernetesManifest@0
+            inputs:
+              action: 'deploy'
+              kubernetesServiceConnection: 'aks-service-connection'
+              namespace: $(prodNamespace)
+              manifests: '$(Pipeline.Workspace)/manifests/*.y*ml'
+              containers: '$(dockerRegistryServer)/$(imageName):$(Build.BuildId)'

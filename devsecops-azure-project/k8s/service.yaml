@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: devsecops-app-service
+spec:
+  type: LoadBalancer # <--- This tells Azure to give you a Public IP
+  selector:
+    app: devsecops-app
+  ports:
+    - protocol: TCP
+      port: 80        # Port you use in the browser
+      targetPort: 8000 # Port your Python app is listening on
