@@ -15,146 +15,175 @@ stages:
 # ========================================================
 - stage: SAST
   displayName: "Security: Static Analysis (Bandit)"
-  dependsOn: [] # Starts immediately
+  dependsOn: [] # Setting this to empty ensures the security scan starts immediately when the pipeline runs
   jobs:
   - job: BanditScan
     displayName: "Bandit Scan & Report"
     pool:
-      vmImage: 'ubuntu-latest'
+      vmImage: 'ubuntu-latest' # Uses a Microsoft-hosted Linux runner
     steps:
+    # 1. Setup Phase: Ensure the correct Python version is available
     - task: UsePythonVersion@0
       inputs:
         versionSpec: '3.11'
       displayName: "Set up Python Environment"
 
+    # 2. Execution Phase: Install tools and run the security scanner
     - script: |
+        # Update pip to ensure the latest package manager version
         python -m pip install --upgrade pip
+        
+        # Install 'bandit' (the scanner) and 'jq' (the JSON processor)
         pip install bandit jq
+        
+        # Create a directory to hold the resulting scan files
         mkdir -p reports
         
-        # Run Bandit. We use '|| true' so we can generate the report even if vulns are found.
-        # We scan the 'app' directory (change this to your source folder name).
+        # Run Bandit:
+        # -r app: Scan the 'app' folder recursively
+        # -f json: Output results in JSON format
+        # -o reports/bandit.json: Save the result to this file
+        # || true: Important! This prevents the pipeline from stopping if Bandit finds a vulnerability, 
+        # allowing us to process the report in the next steps.
         bandit -r app -f json -o reports/bandit.json || true
       displayName: "Run Bandit Scan"
 
+    # 3. Transformation Phase: Convert results for standard security tools
     - script: |
-        # Run your conversion script
+        # Run a local python script to convert Bandit's proprietary JSON format 
+        # into SARIF (Static Analysis Results Interchange Format), which is the standard 
+        # for security tools across the industry.
         python scripts/bandit_to_sarif.py reports/bandit.json reports/bandit.sarif
       displayName: "Convert Bandit JSON to SARIF"
 
-    # ------------------------------------------------
-    # Create Markdown Summary for the Pipeline UI
-    # ------------------------------------------------
+    # 4. Reporting Phase: Create the human-readable dashboard summary
     - script: |
+        # Strict mode: -e (exit on error), -u (error on unset variables), -o pipefail (catch errors in pipes)
         set -euo pipefail
+        
+        # Define variables for paths
         SUMMARY_FILE="$(Pipeline.Workspace)/sast-summary.md"
         REPORT="reports/bandit.json"
         
+        # Use jq to count how many security issues were found in the JSON report
         TOTAL_ISSUES=$(jq '.results | length' $REPORT)
         
         if [ "$TOTAL_ISSUES" -eq 0 ]; then
+          # If no issues, write a simple success message to our Markdown file
           echo "## ✅ SAST Scan Results: Bandit" > "$SUMMARY_FILE"
           echo "No high-risk security issues were detected in the source code." >> "$SUMMARY_FILE"
         else
+          # If issues exist, build a header and a summary count
           echo "## ❌ SAST Security Issues: Bandit" > "$SUMMARY_FILE"
           echo "Found **$TOTAL_ISSUES** issues that require attention." >> "$SUMMARY_FILE"
           echo "" >> "$SUMMARY_FILE"
+          
+          # Create the table header for the Dashboard UI
           echo "| Severity | Issue | File | Line |" >> "$SUMMARY_FILE"
           echo "| :--- | :--- | :--- | :--- |" >> "$SUMMARY_FILE"
           
-          # Parse JSON results into Markdown table rows
+          # Use jq to extract specific fields from the JSON and format them as Markdown table rows:
+          # .results[] loops through every finding
+          # \(.field) inserts the specific data into the string
           jq -r '.results[] | "| \(.issue_severity) | \(.issue_text) | \(.filename) | \(.line_number) |"' $REPORT >> "$SUMMARY_FILE"
         fi
         
-        # This special command attaches the file to the Azure DevOps summary page
+        # AZURE DEVOPS SPECIAL COMMAND:
+        # This uploads the .md file and pins it to the 'Summary' tab of the build results page.
         echo "##vso[task.addattachment type=Distributedtask.Core.Summary;name=SAST Scan Results]$SUMMARY_FILE"
       displayName: "Publish SAST Summary to Dashboard"
 
-    # ------------------------------------------------
-    # Enforce Build Quality Gate
-    # ------------------------------------------------
+    # 5. Enforcement Phase: The "Quality Gate"
     - script: |
-        # Fail the build if there are any HIGH severity issues , or .issue_severity == "MEDIUM"
+        # Use jq to specifically count only issues where severity is labeled 'HIGH'
         HIGH_COUNT=$(jq '[.results[] | select(.issue_severity == "HIGH")] | length' reports/bandit.json)
         
         if [ "$HIGH_COUNT" -gt 0 ]; then
+          # If high-risk bugs are found, print an error and 'exit 1' to fail the pipeline
           echo "❌ SECURITY GATE FAILED: $HIGH_COUNT HIGH severity issues found."
           exit 1
         fi
+        # If no high-risk bugs, the script continues normally (exit 0)
         echo "✅ SECURITY GATE PASSED: No HIGH severity issues found."
       displayName: "Check Quality Gate (Fail on HIGH)"
 
-    # ------------------------------------------------
-    # Publish Artifacts for Azure DevOps Scans Tab
-    # ------------------------------------------------
+    # 6. Archiving Phase: Save the raw logs for future reference
     - task: PublishBuildArtifacts@1
       displayName: "Upload Security Logs"
       inputs:
-        pathToPublish: 'reports'
-        artifactName: 'CodeAnalysisLogs'
+        pathToPublish: 'reports'      # The folder containing bandit.json and bandit.sarif
+        artifactName: 'CodeAnalysisLogs' # Name of the download package in the build results
 
 
 # =========================
-# 2. Dependency Scan (SCA)
-# pip-audit is a security tool from the Python ecosystem that Scans requirements.txt
-# =========================
+# ========================================================
+# 2. Dependency Scan (SCA - Software Composition Analysis)
+# ========================================================
 - stage: DependencyScan
-  displayName: Dependency Security Scan (pip-audit)
-  dependsOn: SAST
+  displayName: "Security: Dependency Scan (pip-audit)"
+  dependsOn: SAST # Runs after the SAST stage is finished
   jobs:
   - job: PipAudit
-    displayName: Python Dependency Vulnerability Scan
+    displayName: "Python Dependency Vulnerability Scan"
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
+    # 1. Environment Setup
     - task: UsePythonVersion@0
-      displayName: Use Python $(pythonVersion)
+      displayName: "Set up Python Environment"
       inputs:
-        versionSpec: $(pythonVersion)
+        versionSpec: '3.11' # Matches your SAST stage version
 
-    # ------------------------------------------------
-    # Run pip-audit (Detection Only – Non Blocking)
-    # ------------------------------------------------
+    # 2. Execution Phase: Scan requirements.txt for known CVEs
     - script: |
         set -euo pipefail
 
+        # Ensure pip is current and install pip-audit (the scanner) and jq (the parser)
         python -m pip install --upgrade pip
         pip install pip-audit jq
 
         mkdir -p reports
 
-        # Run dependency scan
-        # Note: pip-audit returns 1 if vulns found, || true allows us to process the report ourselves
+        # Run pip-audit:
+        # -r requirements.txt: Scans the libraries listed in your requirements file
+        # --timeout 30: Prevents the job from hanging if the PyPI/OSV database is slow
+        # --format json: Generates machine-readable data for the next steps
+        # || true: Prevents immediate failure so we can generate the human-readable report below
         pip-audit \
           -r requirements.txt \
           --timeout 30 \
           --format json \
           --output reports/pip-audit.json || true
-      displayName: Run pip-audit Dependency Scan
+      displayName: "Run pip-audit Scan"
 
-    # ------------------------------------------------
-    # Generate & Publish Pipeline Summary
-    # ------------------------------------------------
+    # 3. Reporting Phase: Create a dashboard summary for developers
     - script: |
         set -euo pipefail
 
         SUMMARY_FILE="$(Pipeline.Workspace)/dependency-summary.md"
         REPORT="reports/pip-audit.json"
 
-        # Count all vulnerabilities regardless of severity for the summary
+        # Use JQ to dig into the JSON structure:
+        # It looks at every dependency, finds the 'vulns' array, and counts the total items
         TOTAL_VULNS=$(jq '[.dependencies[].vulns[]?] | length' $REPORT)
 
         if [ "$TOTAL_VULNS" -eq 0 ]; then
           {
             echo "## ✅ Dependency Scan"
-            echo ""
-            echo "No vulnerable dependencies found."
+            echo "No vulnerable dependencies were found in requirements.txt."
           } > "$SUMMARY_FILE"
         else
           {
             echo "## ⚠️ Dependency Vulnerabilities Found"
-            echo "Total Issues: $TOTAL_VULNS"
+            echo "Found **$TOTAL_VULNS** known vulnerabilities in your project dependencies."
             echo ""
             echo "| Package | Version | CVE ID | Severity |"
             echo "| :--- | :--- | :--- | :--- |"
+            
+            # Complex JQ parse:
+            # 1. Loop through dependencies
+            # 2. Only select those with vulnerabilities (vulns != null)
+            # 3. Flatten the vulnerability list into table rows
             jq -r '
               .dependencies[]
               | select(.vulns != null)
@@ -165,113 +194,131 @@ stages:
           } > "$SUMMARY_FILE"
         fi
 
-        # Publish summary to Azure DevOps UI
+        # Azure DevOps Magic: Attach the markdown summary to the Pipeline Run page
         echo "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Dependency Scan]$SUMMARY_FILE"
-      displayName: Publish Dependency Summary to Pipeline
+      displayName: "Publish Dependency Summary to Dashboard"
 
-    # ------------------------------------------------
-    # Enforce Dependency Security Policy
-    # FAIL on HIGH / CRITICAL / UNKNOWN
-    # ------------------------------------------------
+    # 4. Enforcement Phase: The "Security Gate"
     - script: |
         set -euo pipefail
         REPORT="reports/pip-audit.json"
 
         echo "--- Security Policy Audit ---"
 
-        # Robust JQ filter:
-        # 1. Converts severity to uppercase (handles "High" vs "HIGH")
-        # 2. Specifically targets HIGH, CRITICAL, and UNKNOWN
+        # This filter counts only the "Dangerous" vulnerabilities:
+        # It looks for HIGH or CRITICAL severities. 
+        # It also flags UNKNOWN because many severe new bugs are initially unranked.
         BLOCK_COUNT=$(jq '[.dependencies[].vulns[]? | select(.severity | ascii_upcase | . == "HIGH" or . == "CRITICAL" or . == "UNKNOWN")] | length' $REPORT)
 
         if [ "$BLOCK_COUNT" -gt 0 ]; then
-          echo "❌ POLICY VIOLATION: Found $BLOCK_COUNT vulnerabilities with HIGH, CRITICAL, or UNKNOWN severity."
+          echo "❌ POLICY VIOLATION: Found $BLOCK_COUNT high-risk vulnerabilities."
           echo "--- Details of Blocking Issues ---"
+          # Prints a clear list in the logs so developers know exactly what to upgrade
           jq -r '.dependencies[] | select(.vulns != null) | . as $dep | $dep.vulns[] | select(.severity | ascii_upcase | . == "HIGH" or . == "CRITICAL" or . == "UNKNOWN") | "Package: \($dep.name) (\($dep.version)) -> \(.id) [\(.severity)]"' $REPORT
-          exit 1
+          exit 1 # This kills the pipeline to prevent insecure code from moving forward
         fi
 
         echo "✅ POLICY PASSED: No blocking vulnerabilities found."
-      displayName: Enforce Dependency Security Policy (High/Critical/Unknown)
+      displayName: "Enforce Security Policy (High/Critical)"
 
-    # ------------------------------------------------
-    # Publish Raw Report (Audit / Compliance)
-    # ------------------------------------------------
+    # 5. Archive Phase: Save the raw data
     - task: PublishBuildArtifacts@1
-      displayName: Publish Dependency Scan Report
+      displayName: "Upload Dependency Scan Logs"
       inputs:
-        pathToPublish: reports/pip-audit.json
-        artifactName: DependencyScanReports
-
+        pathToPublish: 'reports/pip-audit.json'
+        artifactName: 'DependencyScanReports'
 
 
 
 # =========================
 # ========================================================
+# ========================================================
 # 3. Tests & Coverage (Unified Stage)
-# pytest — Unit Testing Tool - Runs your Python unit tests and validates application behavior.
-# pytest-cov — Code Coverage Tool - Measures how much of your source code is covered by tests.
+# This stage ensures the code actually works (Unit Tests) 
+# and that most of the code is being checked (Coverage).
 # ========================================================
 - stage: Tests
   displayName: "Unit Tests & Coverage"
-  dependsOn: DependencyScan
+  dependsOn: DependencyScan # Only runs if the dependency security scan finishes
   jobs:
   - job: TestAndCover
     displayName: "Execute Pytest with Coverage"
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
+    # 1. Environment Preparation
     - task: UsePythonVersion@0
       inputs:
         versionSpec: $(pythonVersion)
       displayName: "Setup Python"
 
+    # 2. Dependency Installation
     - script: |
+        # Ensure the latest pip is used to avoid installation errors
         python -m pip install --upgrade pip
+        
+        # Install the actual application dependencies
         pip install -r requirements.txt
-        pip install pytest pytest-cov  # Testing essentials
+        
+        # Install 'pytest' for running tests and 'pytest-cov' for measuring code coverage
+        pip install pytest pytest-cov
       displayName: "Install Dependencies"
 
+    # 3. Execution Phase: Running the tests and measuring coverage
     - script: |
+        # Set PYTHONPATH so the test runner can find the 'app' module in the root directory
         export PYTHONPATH=$(System.DefaultWorkingDirectory)
+        
+        # Create a directory for the machine-readable test results
         mkdir -p reports
-        # --cov=app: specifies which folder to measure coverage for
-        # --cov-report=xml: creates the file for Azure DevOps to read
-        # --cov-fail-under=80: THE GATE. Fails the build if coverage < 80%
+        
+        # Run pytest with several critical flags:
+        # --junitxml: Generates a file that Azure DevOps uses to show the "Tests" tab.
+        # --cov=app: Tells the tool to track which lines of code inside the 'app' folder are executed.
+        # --cov-report=xml: Creates a 'coverage.xml' file (Cobertura format) for Azure to visualize.
+        # --cov-fail-under=80: THE QUALITY GATE. If less than 80% of your code is tested, 
+        #                      this script exits with an error and stops the pipeline.
         pytest --junitxml=reports/junit.xml \
                --cov=app \
                --cov-report=xml:coverage.xml \
                --cov-fail-under=80
       displayName: "Run Pytest with 80% Coverage Gate"
 
-    # This makes the "Tests" tab appear in Azure DevOps
+    # 4. Integration Phase: Visualizing results in the Pipeline UI
+    
+    # This task populates the "Tests" tab at the top of your Pipeline run.
+    # 'succeededOrFailed()' ensures that even if tests fail, we still see which ones failed.
     - task: PublishTestResults@2
-      condition: succeededOrFailed()
+      condition: succeededOrFailed() 
       inputs:
         testResultsFormat: JUnit
         testResultsFiles: reports/junit.xml
-        failTaskOnFailedTests: true
-      displayName: "Publish Test Results"
+        failTaskOnFailedTests: true # Ensures the pipeline red-lines if a test case fails
+      displayName: "Publish Test Results to Azure UI"
 
-    # This makes the "Code Coverage" tab appear in Azure DevOps
+    # This task populates the "Code Coverage" tab at the top of your Pipeline run.
+    # It turns the XML data into a browseable report showing which lines are 'green' or 'red'.
     - task: PublishCodeCoverageResults@2
       inputs:
-        codeCoverageTool: Cobertura
         summaryFileLocation: '$(System.DefaultWorkingDirectory)/coverage.xml'
-      displayName: "Publish Coverage Results"
+      displayName: "Publish Coverage Results to Azure UI"
 
 # ========================================================
+# ========================================================
 # 4. Container Build & Local Scan
-# Only secure container images are allowed to move forward.
-# Docker - Build container image
-# Trivy - Scan image vulnerabilities
-# jq - Parse scan results
+# This stage builds the Docker image and immediately scans it.
+# We do not push to a registry until it passes this scan.
 # ========================================================
 - stage: ContainerScan
   displayName: "Container: Build & Scan"
-  dependsOn: Tests
+  dependsOn: Tests # Only build the container if the application tests pass
   jobs:
   - job: BuildAndScan
     displayName: "Docker Build and Trivy Scan"
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
+    # 1. Build Phase: Create the image locally on the agent
     - task: Docker@2
       displayName: "Build Image Locally"
       inputs:
@@ -279,14 +326,17 @@ stages:
         repository: $(imageName)
         dockerfile: 'Dockerfile'
         tags: $(Build.BuildId)
-        addPipelineData: false # We disable addPipelineData to keep container images clean, reproducible, and free of CI/CD metadata.
+        # We disable metadata to ensure the image is clean and reproducible
+        addPipelineData: false 
 
+    # 2. Execution Phase: Scan the local image for vulnerabilities
     - script: |
-        # Run Trivy as a container to scan the image we just built
-        # We mount the docker socket so the Trivy container can see local images
-        # We output a JSON report for the summary step
+        # Create a directory for the scan report
         mkdir -p $(Pipeline.Workspace)/reports
         
+        # We run Trivy via a Docker container to avoid installing it manually.
+        # -v /var/run/docker.sock: Allows the Trivy container to see images on the host
+        # image --format json: Tells Trivy to create a computer-readable report
         docker run --rm \
           -v /var/run/docker.sock:/var/run/docker.sock \
           -v $(Pipeline.Workspace)/reports:/root/.cache \
@@ -295,13 +345,13 @@ stages:
           $(imageName):$(Build.BuildId)
       displayName: "Run Trivy Scan (JSON Output)"
 
+    # 3. Reporting Phase: Create the Dashboard Summary
     - script: |
         set -euo pipefail
         REPORT="$(Pipeline.Workspace)/reports/trivy-results.json"
         SUMMARY_FILE="$(Pipeline.Workspace)/container-summary.md"
         
-        # Extract vulnerability counts using jq
-        # Trivy JSON structure: .Results[].Vulnerabilities
+        # Use jq to count every vulnerability found in the container OS or libraries
         VULNS=$(jq '[.Results[]?.Vulnerabilities[]?] | length' $REPORT)
         
         echo "## 🐳 Container Security Scan (Trivy)" > "$SUMMARY_FILE"
@@ -312,24 +362,27 @@ stages:
           echo "⚠️ Found **$VULNS** total vulnerabilities." >> "$SUMMARY_FILE"
           echo "" >> "$SUMMARY_FILE"
           echo "| Severity | Library | Vulnerability ID | Fixed Version |" >> "$SUMMARY_FILE"
-          echo "| :--- | :--- | :--- | :--- |" >> "$SUMMARY_FILE"
+          echo "| :--- | :--- | :--- | :--- |"
           
-          # Parse top 10 vulnerabilities for the summary table
+          # JQ extracts the top 10 most critical issues to show on the dashboard
+          # .FixedVersion // "N/A": Shows the fix if available, otherwise "N/A"
           jq -r '.Results[]?.Vulnerabilities[]? | "| \(.Severity) | \(.PkgName) | \(.VulnerabilityID) | \(.FixedVersion // "N/A") |"' $REPORT | head -n 10 >> "$SUMMARY_FILE"
         fi
         
-        # Publish to Azure DevOps Summary
+        # Attach the summary to the Azure DevOps build page
         echo "##vso[task.addattachment type=Distributedtask.Core.Summary;name=Container Security]$SUMMARY_FILE"
       displayName: "Publish Container Scan Summary"
 
+    # 4. Enforcement Phase: The Security Gate
     - script: |
-        # Final Gate: Fail if any HIGH or CRITICAL issues exist
+        # This second run of Trivy is the 'Gatekeeper'.
+        # --exit-code 1: Force the script to fail (stopping the pipeline) if issues are found.
+        # --severity HIGH,CRITICAL: Only fail the build for the most dangerous issues.
         docker run --rm \
           -v /var/run/docker.sock:/var/run/docker.sock \
           aquasec/trivy:latest \
           image --exit-code 1 --severity HIGH,CRITICAL $(imageName):$(Build.BuildId)
       displayName: "Trivy Security Gate (Fail on High/Critical)"
-
 
 # ========================================================
 # 5. Container Release (Push to ACR)
@@ -355,46 +408,61 @@ stages:
           latest
 
 # ========================================================
+## ========================================================
 # 6. IaC Security Scan (Checkov)
-# Checkov is an Infrastructure as Code (IaC) security scanning tool.
+# Scans Kubernetes manifests to ensure the infrastructure 
+# configuration is secure before deployment to mos-dev.
 # ========================================================
 - stage: IaCScan
   displayName: "Security: K8s Manifest Scan"
-  dependsOn: ContainerPush
+  dependsOn: ContainerPush # Runs only after the image is safely in the registry
   jobs:
   - job: CheckovScan
     displayName: "Checkov Static Analysis"
+    pool:
+      vmImage: 'ubuntu-latest'
     steps:
+    # 1. Install Checkov
     - script: |
-        # Install Checkov via pip
+        # Checkov is a Python-based tool that scans Cloud/K8s configurations
         pip install checkov
       displayName: "Install Checkov"
 
+    # 2. Execution Phase: Generate Machine-Readable Report
     - script: |
-        # Run Checkov on the k8s directory
-        # --directory: points to your kubernetes manifest folder
-        # --soft-fail: ensures we generate the report even if checks fail
-        # --output junitxml: creates a report for the Azure DevOps Tests tab
+        # Create a directory for reports
         mkdir -p reports
+        
+        # Run Checkov on the 'k8s/' folder
+        # --directory: The path to your Kubernetes YAML/Manifest files
+        # --output junitxml: Formats results so Azure DevOps can display them in the 'Tests' tab
+        # --soft-fail: Allows the script to finish (exit 0) so we can process the summary
+        # || true: Extra safety to ensure the pipeline doesn't stop here
         checkov -d k8s/ --output junitxml > reports/checkov-report.xml || true
-      displayName: "Run Checkov Scan"
+      displayName: "Run Checkov Scan (JUnit Output)"
 
+    # 3. Reporting Phase: Create Dashboard Summary
     - script: |
         set -euo pipefail
         SUMMARY_FILE="$(Pipeline.Workspace)/iac-summary.md"
         
-        # We run checkov again in cli mode just to extract the summary for the dashboard
+        # Run a 'quiet' scan to get a clean text summary for the dashboard
+        # --no-guide: Removes extra links to keep the dashboard clean
         checkov -d k8s/ --quiet --no-guide > $(Pipeline.Workspace)/checkov_raw.txt || true
         
         echo "## 🏗️ Infrastructure as Code Scan (Checkov)" > "$SUMMARY_FILE"
         echo "Reviewing Kubernetes Manifests for security misconfigurations..." >> "$SUMMARY_FILE"
+        
+        # Extract the 'Passed/Failed' summary block from the text file
         echo '```text' >> "$SUMMARY_FILE"
         grep -A 5 "Passed checks:" $(Pipeline.Workspace)/checkov_raw.txt >> "$SUMMARY_FILE" || true
         echo '```' >> "$SUMMARY_FILE"
 
+        # Attach the markdown summary to the Pipeline Run dashboard
         echo "##vso[task.addattachment type=Distributedtask.Core.Summary;name=IaC Security Results]$SUMMARY_FILE"
       displayName: "Publish IaC Summary"
 
+    # 4. Integration Phase: Visualizing results in the Tests Tab
     - task: PublishTestResults@2
       inputs:
         testResultsFormat: 'JUnit'
@@ -402,13 +470,17 @@ stages:
         testRunTitle: 'Checkov IaC Scan'
       displayName: "Display IaC Results in Tests Tab"
 
+    # 5. Enforcement Phase: The Quality Gate
     - script: |
-        # THE GATE: Fail the build if there are critical misconfigurations
-        # --check CKV_K8S_1,CKV_K8S_2 - Runs only these specific security checks
-        # CKV_K8S_1 - Containers running as root
-        # CKV_K8S_2 - Missing security context / privilege controls
-        checkov -d k8s/ --check CKV_K8S_1,CKV_K8S_2 # Example: Fail on specific criticals
-      displayName: "Enforce IaC Policy"
+        # THE GATE: Fail the build if specific critical violations exist.
+        # This re-runs Checkov WITHOUT 'soft-fail' for specific high-priority rules:
+        # CKV_K8S_1: Ensure containers do not run as Root
+        # CKV_K8S_2: Ensure containers have a Security Context defined
+        echo "Checking for Critical K8s Misconfigurations..."
+        checkov -d k8s/ --check CKV_K8S_1,CKV_K8S_2
+      displayName: "Enforce IaC Policy (Fail on Root/Privilege)"
+
+    # 6. Archive Phase: Save the manifests for the Deployment stage
     - task: PublishPipelineArtifact@1
       displayName: "Publish K8s Manifests"
       inputs:
