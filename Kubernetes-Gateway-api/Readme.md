@@ -1,17 +1,4 @@
-Perfect 👍
-Below is a **complete `README.md`** you can **copy-paste directly into GitHub**, including **all YAML files**, **clear explanations**, and **step-by-step commands** for your **Envoy Gateway + Gateway API demo on Docker Desktop**.
 
-This is **video-ready**, **beginner-friendly**, and **production-accurate**.
-
----
-
-# 🚀 Kubernetes Gateway API Demo using Envoy Gateway (Docker Desktop)
-
-![Image](https://gateway.envoyproxy.io/img/architecture.png)
-
-![Image](https://substackcdn.com/image/fetch/f_auto%2Cq_auto%3Agood%2Cfl_progressive%3Asteep/https%3A%2F%2Fsubstack-post-media.s3.amazonaws.com%2Fpublic%2Fimages%2Fcb0c8192-4b1b-4834-b068-20d8cfb65050_1856x1412.png)
-
-![Image](https://www.tigera.io/app/uploads/2024/11/Kubernetes-Gateway-API-1.png)
 
 ---
 
