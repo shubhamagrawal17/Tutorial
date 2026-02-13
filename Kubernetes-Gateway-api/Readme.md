@@ -346,29 +346,3 @@ kubectl describe httproute demo-route
 * Works perfectly on **local Kubernetes**
 
 ---
-
-## 🎬 Perfect Closing Line for Video
-
-> “This demo shows how Gateway API with Envoy Gateway provides clean, scalable, and production-ready traffic management—even on Docker Desktop.”
-
----
-
-## 🚀 Next Enhancements (Optional)
-
-* HTTPS + TLS
-* GRPCRoute demo
-* Header-based routing
-* Canary deployments
-* Metrics with Prometheus
-
----
-
-If you want, I can:
-
-* Turn this into a **GitHub repo**
-* Add **GRPCRoute README**
-* Create **slides + narration**
-* Provide **HTTPS version**
-* Optimize for **interview demo**
-
-Just tell me 👍
