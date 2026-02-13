@@ -1,0 +1,71 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-v1
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+      version: v1
+  template:
+    metadata:
+      labels:
+        app: demo
+        version: v1
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo
+          args:
+            - "-text=Hello from VERSION V1"
+          ports:
+            - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-v1
+spec:
+  selector:
+    app: demo
+    version: v1
+  ports:
+    - port: 80
+      targetPort: 5678
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-v2
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: demo
+      version: v2
+  template:
+    metadata:
+      labels:
+        app: demo
+        version: v2
+    spec:
+      containers:
+        - name: app
+          image: hashicorp/http-echo
+          args:
+            - "-text=Hello from VERSION V2"
+          ports:
+            - containerPort: 5678
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: app-v2
+spec:
+  selector:
+    app: demo
+    version: v2
+  ports:
+    - port: 80
+      targetPort: 5678
