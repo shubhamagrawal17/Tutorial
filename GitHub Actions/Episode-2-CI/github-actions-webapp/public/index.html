@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Calculator App</title>
+</head>
+<body>
+  <h2>Simple Calculator</h2>
+
+  <input id="a" placeholder="Enter A" />
+  <input id="b" placeholder="Enter B" />
+
+  <button onclick="calculate()">Add</button>
+
+  <h3 id="result"></h3>
+
+  <script>
+    async function calculate() {
+      const a = document.getElementById('a').value;
+      const b = document.getElementById('b').value;
+
+      const res = await fetch(`/sum?a=${a}&b=${b}`);
+      const data = await res.json();
+
+      document.getElementById('result').innerText = "Result: " + data.result;
+    }
+  </script>
+</body>
+</html>
