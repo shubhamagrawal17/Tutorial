@@ -1,0 +1,59 @@
+name: CI Pipeline Demo
+on: 
+  push:
+    branches: ["main"]
+jobs:
+  build-job:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4.3.1
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 18
+          cache: 'npm'
+      - run: npm ci
+      - run: npm run build
+      - run: mv node_modules dist/
+      - run: cp package.json dist/
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: artifacts
+          path: dist
+  test-job:
+    runs-on: ubuntu-22.04
+    needs: build-job
+    steps:
+      - uses: actions/checkout@v4.3.1
+      - uses: actions/setup-node@v6.4.0
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm test
+      - uses: actions/upload-artifact@v7.0.1
+        with:
+          name: test-coverage
+          path: coverage
+  lint-job:
+    runs-on: ubuntu-22.04
+    needs: test-job
+    steps:
+      - uses: actions/checkout@v4.3.1
+      - uses: actions/setup-node@v6.4.0    
+        with:
+          node-version: 18
+      - run: npm ci
+      - run: npm run lint
+
+          
+  
+
+          
+          
+
+          
+      
+    
+      
+        
+    
+          
