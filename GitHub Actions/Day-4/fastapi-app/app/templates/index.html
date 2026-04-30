@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <title>FastAPI Premium UI</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gradient-to-br from-indigo-900 via-gray-900 to-black text-white min-h-screen">
+
+    <!-- 🔐 LOGIN SCREEN -->
+    <div id="loginScreen" class="fixed inset-0 flex items-center justify-center bg-black/80 z-50">
+        <div class="bg-white/10 backdrop-blur-lg p-8 rounded-xl w-80 border border-white/20">
+            <h2 class="text-xl mb-4 text-center">🔐 Login</h2>
+
+            <input id="username" placeholder="Username"
+                class="w-full mb-3 px-3 py-2 rounded bg-white/10 border border-white/20" />
+
+            <input id="password" type="password" placeholder="Password"
+                class="w-full mb-4 px-3 py-2 rounded bg-white/10 border border-white/20" />
+
+            <button onclick="login()" class="w-full bg-indigo-600 py-2 rounded hover:bg-indigo-700">
+                Login
+            </button>
+
+            <!-- ✅ Demo Credentials -->
+            <p class="text-xs text-gray-300 mt-3 text-center">
+                Demo: admin / admin123
+            </p>
+        </div>
+    </div>
+
+    <!-- 🚀 MAIN APP -->
+    <div class="flex items-center justify-center min-h-screen">
+        <div class="w-full max-w-3xl backdrop-blur-lg bg-white/10 border border-white/20 rounded-2xl shadow-2xl p-8">
+
+            <!-- Header -->
+            <div class="flex justify-between items-center mb-6">
+                <h1 class="text-3xl font-bold">🚀 FastAPI Dashboard</h1>
+                <button onclick="logout()" class="bg-red-500 px-3 py-1 rounded text-sm hover:bg-red-600">
+                    Logout
+                </button>
+            </div>
+
+            <!-- Form -->
+            <div class="flex gap-3 mb-6">
+                <input id="name" placeholder="Name"
+                    class="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 focus:ring-2 focus:ring-indigo-400 outline-none" />
+
+                <input id="email" placeholder="Email"
+                    class="flex-1 px-4 py-2 rounded-lg bg-white/10 border border-white/20 focus:ring-2 focus:ring-indigo-400 outline-none" />
+
+                <button onclick="createUser()"
+                    class="bg-indigo-600 hover:bg-indigo-700 px-5 py-2 rounded-lg font-semibold transition">
+                    Add
+                </button>
+            </div>
+
+            <!-- Users -->
+            <div>
+                <h2 class="text-xl font-semibold mb-3">👥 Users</h2>
+                <ul id="users" class="space-y-3"></ul>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- Toast -->
+    <div id="toast" class="hidden fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow-lg text-white"></div>
+
+    <!-- Loader -->
+    <div id="loader" class="hidden fixed inset-0 bg-black/50 flex items-center justify-center">
+        <div class="w-12 h-12 border-4 border-white border-t-transparent rounded-full animate-spin"></div>
+    </div>
+
+    <script>
+        const API = "/api/v1/users";
+        let token = localStorage.getItem("token");
+
+        function showToast(message, type = "success") {
+            const toast = document.getElementById("toast");
+            toast.innerText = message;
+            toast.className = `fixed bottom-6 right-6 px-4 py-2 rounded-lg shadow-lg text-white ${type === "error" ? "bg-red-500" : "bg-green-500"
+                }`;
+            toast.classList.remove("hidden");
+            setTimeout(() => toast.classList.add("hidden"), 2000);
+        }
+
+        function showLoader(show) {
+            document.getElementById("loader").classList.toggle("hidden", !show);
+        }
+
+        function hideLogin() {
+            document.getElementById("loginScreen").style.display = "none";
+        }
+
+        function logout() {
+            localStorage.removeItem("token");
+            location.reload();
+        }
+
+        async function login() {
+            const username = document.getElementById("username").value;
+            const password = document.getElementById("password").value;
+
+            try {
+                const res = await fetch("/api/v1/auth/login", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ username, password })
+                });
+
+                if (!res.ok) throw new Error();
+
+                const data = await res.json();
+                token = data.access_token;
+
+                localStorage.setItem("token", token);
+                hideLogin();
+                loadUsers();
+
+                showToast("Login successful ✅");
+
+            } catch {
+                showToast("Invalid credentials ❌", "error");
+            }
+        }
+
+        function getHeaders() {
+            return {
+                "Content-Type": "application/json",
+                "Authorization": `Bearer ${token}`
+            };
+        }
+
+        async function createUser() {
+            const name = document.getElementById("name").value.trim();
+            const email = document.getElementById("email").value.trim();
+
+            if (!name || !email) {
+                showToast("Please enter all fields", "error");
+                return;
+            }
+
+            try {
+                showLoader(true);
+
+                const res = await fetch(API, {
+                    method: "POST",
+                    headers: getHeaders(),
+                    body: JSON.stringify({ name, email })
+                });
+
+                if (res.status === 401) return logout();
+                if (!res.ok) throw new Error();
+
+                document.getElementById("name").value = "";
+                document.getElementById("email").value = "";
+
+                showToast("User Added ✅");
+                loadUsers();
+
+            } catch {
+                showToast("Failed to add user ❌", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function deleteUser(userId) {
+            try {
+                showLoader(true);
+
+                const res = await fetch(`${API}/${userId}`, {
+                    method: "DELETE",
+                    headers: getHeaders()
+                });
+
+                if (res.status === 401) return logout();
+                if (!res.ok) throw new Error();
+
+                showToast("User Deleted ❌");
+                loadUsers();
+
+            } catch {
+                showToast("Delete failed ❌", "error");
+            } finally {
+                showLoader(false);
+            }
+        }
+
+        async function loadUsers() {
+            const list = document.getElementById("users");
+            list.innerHTML = "";
+
+            try {
+                const res = await fetch(API, { headers: getHeaders() });
+
+                if (res.status === 401) return logout();
+
+                const data = await res.json();
+
+                if (data.length === 0) {
+                    list.innerHTML = `<li class="text-center text-gray-400">No users yet 🚀</li>`;
+                    return;
+                }
+
+                data.forEach(user => {
+                    const li = document.createElement("li");
+
+                    li.className = "bg-white/10 border border-white/20 px-4 py-3 rounded-lg flex justify-between items-center hover:bg-white/20 transition";
+
+                    li.innerHTML = `
+                        <div>
+                            <p class="font-semibold">${user.name}</p>
+                            <p class="text-sm text-gray-300">${user.email}</p>
+                        </div>
+                        <button onclick="deleteUser(${user.id})"
+                            class="bg-red-500 hover:bg-red-600 px-3 py-1 rounded text-sm">
+                            Delete
+                        </button>
+                    `;
+
+                    list.appendChild(li);
+                });
+
+            } catch {
+                list.innerHTML = `<li class="text-red-400">Failed to load users</li>`;
+            }
+        }
+
+        // Auto login
+        if (token) {
+            hideLogin();
+            loadUsers();
+        }
+    </script>
+
+</body>
+
+</html>
