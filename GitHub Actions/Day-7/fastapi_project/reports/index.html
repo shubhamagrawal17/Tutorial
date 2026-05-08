@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🚀 AI DevOps Dashboard</title>
+
+<style>
+body {
+    margin: 0;
+    font-family: "Segoe UI", sans-serif;
+    background: linear-gradient(135deg, #1e3a8a, #7c3aed, #0f172a);
+    color: #fff;
+}
+
+/* HEADER */
+header {
+    text-align: center;
+    padding: 30px;
+}
+h1 {
+    font-size: 34px;
+    background: linear-gradient(90deg,#facc15,#fb7185);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+}
+
+/* GRID */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(260px,1fr));
+    gap: 20px;
+    padding: 20px;
+}
+
+/* CARD */
+.card {
+    background: rgba(255,255,255,0.08);
+    backdrop-filter: blur(10px);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: center;
+    transition: 0.3s;
+}
+.card:hover {
+    transform: translateY(-5px);
+}
+
+/* STATUS COLORS */
+.success { color: #4ade80; }
+.warning { color: #facc15; }
+.danger { color: #f87171; }
+
+/* BADGE */
+.badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    display: inline-block;
+}
+.badge-green { background: #16a34a; }
+.badge-yellow { background: #ca8a04; }
+.badge-red { background: #dc2626; }
+
+/* BUTTON */
+a {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 10px 18px;
+    background: linear-gradient(90deg,#f43f5e,#f59e0b);
+    border-radius: 8px;
+    color: white;
+    text-decoration: none;
+}
+
+/* AI BOX */
+.ai-box {
+    text-align: left;
+    background: rgba(0,0,0,0.4);
+    padding: 15px;
+    border-radius: 10px;
+    max-height: 250px;
+    overflow-y: auto;
+    font-size: 13px;
+}
+
+/* BIG CARDS */
+.highlight {
+    grid-column: span 2;
+}
+</style>
+
+</head>
+
+<body>
+
+<header>
+<h1>🚀 AI DevOps Dashboard</h1>
+<p id="lastUpdated">Loading...</p>
+</header>
+
+<div class="grid">
+
+<!-- DEPLOYMENT -->
+
+<div class="card highlight">
+<h3>🚀 Deployment Status</h3>
+<div id="deployStatus">Checking...</div>
+</div>
+
+<!-- RISK -->
+
+<div class="card highlight">
+<h3>🔥 Risk Score</h3>
+<div id="riskScore">Analyzing...</div>
+</div>
+
+<!-- TEST -->
+
+<div class="card">
+<h3>🧪 Tests</h3>
+<div id="testStatus">...</div>
+<a href="test-report/report.html">View</a>
+</div>
+
+<!-- COVERAGE -->
+
+<div class="card">
+<h3>📊 Coverage</h3>
+<div id="coverageStatus">...</div>
+</div>
+
+<!-- LINT -->
+
+<div class="card">
+<h3>🧹 Lint</h3>
+<div id="lintStatus">...</div>
+<a href="lint-report/flake8-report/index.html">View</a>
+</div>
+
+<!-- SECURITY -->
+
+<div class="card">
+<h3>🔐 Security</h3>
+<div id="securityStatus">...</div>
+<a href="security-report/bandit-report.html">View</a>
+</div>
+
+<!-- DEPENDENCY -->
+
+<div class="card">
+<h3>📦 Dependency</h3>
+<div id="dependencyStatus">...</div>
+<a href="dependency-report/dependency-report.html">View</a>
+</div>
+
+<!-- AI -->
+
+<div class="card highlight">
+<h3>🤖 AI Insights</h3>
+
+<div id="aiSummary" class="badge badge-yellow">Analyzing...</div>
+
+<br><br>
+
+<div id="aiContent" class="ai-box">Loading AI insights...</div>
+
+<a href="ai-report/ai-report.txt" target="_blank">Full Report</a>
+
+</div>
+
+</div>
+
+<script>
+
+// STATUS DATA
+fetch('status.json?t=' + Date.now())
+.then(res => res.json())
+.then(data => {
+
+    function setStatus(id, value) {
+        const el = document.getElementById(id);
+
+        if (value === "passed") {
+            el.innerHTML = "✔ Passed";
+            el.className = "success";
+        } else if (value === "warning") {
+            el.innerHTML = "⚠ Warning";
+            el.className = "warning";
+        } else {
+            el.innerHTML = "❌ Failed";
+            el.className = "danger";
+        }
+    }
+
+    setStatus("testStatus", data.tests);
+    setStatus("lintStatus", data.lint);
+    setStatus("securityStatus", data.security);
+    setStatus("dependencyStatus", data.dependency);
+
+    let cov = parseFloat(data.coverage) || 0;
+    document.getElementById("coverageStatus").innerHTML = cov + "%";
+
+    // RISK LOGIC
+    let risk = "LOW";
+    if (data.lint === "warning" || data.security === "warning" || data.dependency === "warning") {
+        risk = "MEDIUM";
+    }
+    if (data.tests !== "passed") {
+        risk = "HIGH";
+    }
+
+    // DEPLOY LOGIC
+    let deploy = risk === "LOW" ? "SAFE TO DEPLOY ✅" : "NOT SAFE ❌";
+
+    document.getElementById("riskScore").innerHTML = risk;
+    document.getElementById("deployStatus").innerHTML = deploy;
+
+    document.getElementById("lastUpdated").innerText =
+        "Last updated: " + new Date().toLocaleString();
+});
+
+// AI DATA
+fetch('ai-report/ai-report.txt?t=' + Date.now())
+.then(res => res.text())
+.then(text => {
+
+    document.getElementById("aiContent").innerText = text;
+
+    if (text.toLowerCase().includes("warning") || text.toLowerCase().includes("issue")) {
+        document.getElementById("aiSummary").innerText = "⚠ Issues Detected";
+        document.getElementById("aiSummary").className = "badge badge-yellow";
+    } else {
+        document.getElementById("aiSummary").innerText = "✔ Healthy Pipeline";
+        document.getElementById("aiSummary").className = "badge badge-green";
+    }
+
+})
+.catch(() => {
+    document.getElementById("aiContent").innerText = "AI report not found";
+});
+
+</script>
+
+</body>
+</html>

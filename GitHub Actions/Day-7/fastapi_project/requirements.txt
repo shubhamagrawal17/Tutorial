@@ -1,0 +1,12 @@
+fastapi
+uvicorn
+pydantic
+pytest
+httpx
+flake8
+black
+pip-audit
+email-validator
+python-jose
+passlib[bcrypt]
+django==2.2.0
