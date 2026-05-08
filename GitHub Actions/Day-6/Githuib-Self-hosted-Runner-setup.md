@@ -105,7 +105,7 @@ kubectl get pods -n actions-runner-system
 ---
 ---
 
-# 🏃 STEP 7 — Create Runner Deployment
+# 🏃 STEP 7 — Create Runner Deployment - Create GitHub Actions runners inside my AKS cluster and connect them to my repository
 
 Create file: `runner.yaml`
 
