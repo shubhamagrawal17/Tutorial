@@ -1,4 +1,4 @@
-name: CI Pipeline Demo
+name: CI Pipeline Demon
 on: 
   push:
     branches: ["main"]
