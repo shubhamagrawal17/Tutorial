@@ -1,6 +1,6 @@
 # Repository structure
 
-Azure tutorials are now grouped under `azure/`. AWS, standalone Kubernetes, GitOps, and cross-cutting CI/CD examples remain at their previous locations until separate migration pull requests.
+Azure and AWS tutorials are now grouped under `azure/` and `aws/`. Standalone Kubernetes, GitOps, and cross-cutting CI/CD examples remain at their previous locations until separate migration pull requests.
 
 ```text
 Tutorial/
@@ -21,7 +21,10 @@ Tutorial/
 │   │   └── azure-sql-local-dotnet.md
 │   ├── terraform/infra-as-code/
 │   └── devops-agent-vm/
-├── AWS and EKS examples
+├── aws/
+│   ├── README.md
+│   ├── eks/ebs/
+│   └── elastic-beanstalk/nodejs-sample/
 ├── Kubernetes and Helm examples
 ├── Argo CD and GitOps examples
 ├── CI/CD and DevSecOps examples
@@ -29,6 +32,12 @@ Tutorial/
 ```
 
 The remaining root-level labels are descriptive placeholders, not literal directory names. Use the [project catalogue](PROJECT-CATALOG.md) for exact paths.
+
+## AWS migration mapping
+| Previous path | New path |
+|---|---|
+| `AWS-EKS/EBS/` | `aws/eks/ebs/` |
+| `AWS/my-beanstalk-app/` | `aws/elastic-beanstalk/nodejs-sample/` |
 
 ## Azure migration mapping
 | Previous path | New path |
