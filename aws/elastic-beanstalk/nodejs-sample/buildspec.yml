@@ -4,11 +4,11 @@ phases:
   install:
     commands:
       # Navigate to your application's directory
-      - cd AWS/my-beanstalk-app
+      - cd aws/elastic-beanstalk/nodejs-sample
 
 artifacts:
   files:
     # Package ALL files from the current location (which is now my-beanstalk-app)
     - '**/*'
   # CRITICAL: Define the base directory to ensure only its contents are zipped
-  base-directory: AWS/my-beanstalk-app
+  base-directory: aws/elastic-beanstalk/nodejs-sample

@@ -1,4 +1,4 @@
-"""Dependency-free checks for repository documentation and migrated paths."""
+"""Dependency-free checks for repository documentation and platform migrations."""
 
 from pathlib import Path
 import re
@@ -26,7 +26,7 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-            ROOT / "azure" / "README.md",
+            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md",
         ]:
             with self.subTest(path=path):
                 self.assertTrue(path.exists())
@@ -36,7 +36,8 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-            ROOT / "azure" / "README.md",
+            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md",
+            ROOT / "aws" / "elastic-beanstalk" / "nodejs-sample" / "README.md",
         ]
         for document in documents:
             for target in local_targets(document):
@@ -66,7 +67,30 @@ class RepositoryDocumentationTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertFalse((ROOT / path).exists(), f"Legacy path remains: {path}")
 
-    def test_catalogue_contains_azure_links(self):
+    def test_aws_projects_use_standardized_layout(self):
+        expected = [
+            "aws/README.md",
+            "aws/eks/ebs/01-eks-cluster-creation.yaml",
+            "aws/eks/ebs/02-ebs-storage-class.yaml",
+            "aws/eks/ebs/03-pvc.yaml",
+            "aws/eks/ebs/04-pod.yaml",
+            "aws/eks/ebs/05-ebs-app-service.yaml",
+            "aws/eks/ebs/README.md",
+            "aws/elastic-beanstalk/nodejs-sample/README.md",
+            "aws/elastic-beanstalk/nodejs-sample/buildspec.yml",
+            "aws/elastic-beanstalk/nodejs-sample/package.json",
+            "aws/elastic-beanstalk/nodejs-sample/server.js",
+        ]
+        for path in expected:
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).exists(), f"Missing AWS tutorial path: {path}")
+
+    def test_old_aws_root_paths_are_removed(self):
+        for path in ("AWS", "AWS-EKS"):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists(), f"Legacy AWS path remains: {path}")
+
+    def test_catalogue_contains_azure_and_aws_links(self):
         catalogue = (ROOT / "docs" / "PROJECT-CATALOG.md").read_text(encoding="utf-8")
         for link in [
             "../azure/README.md", "../azure/aks/nginx-ingress/",
@@ -75,6 +99,8 @@ class RepositoryDocumentationTests(unittest.TestCase):
             "../azure/aks/troubleshooting/AKS-Deployment-Issue.yaml",
             "../azure/terraform/infra-as-code/", "../azure/devops-agent-vm/",
             "../azure/key-vault/azure-sql-local-dotnet.md",
+            "../aws/README.md", "../aws/eks/ebs/",
+            "../aws/elastic-beanstalk/nodejs-sample/",
         ]:
             with self.subTest(link=link):
                 self.assertIn(f"]({link})", catalogue)
@@ -101,6 +127,14 @@ class RepositoryDocumentationTests(unittest.TestCase):
                 if match:
                     target = ROOT / match.group(1)
                     self.assertTrue(target.is_file() if key == "dockerfile" else target.is_dir(), f"Invalid {key}: {target}")
+
+    def test_elastic_beanstalk_buildspec_paths_exist(self):
+        buildspec = ROOT / "aws/elastic-beanstalk/nodejs-sample/buildspec.yml"
+        content = buildspec.read_text(encoding="utf-8")
+        match = re.search(r"base-directory:\s*([^\s#]+)", content)
+        self.assertIsNotNone(match, "Buildspec base-directory is missing")
+        if match:
+            self.assertTrue((ROOT / match.group(1)).is_dir(), f"Missing buildspec directory: {match.group(1)}")
 
 
 if __name__ == "__main__":

@@ -18,8 +18,9 @@ Azure tutorials have been migrated into `azure/`. AWS, standalone Kubernetes, Gi
 ## AWS
 | Project | Description |
 |---|---|
-| [AWS EKS and EBS](../AWS-EKS/) | EKS and EBS CSI storage |
-| [AWS Elastic Beanstalk](../AWS/) | Node.js and buildspec example |
+| [AWS tutorials index](../aws/README.md) | AWS project overview |
+| [Amazon EKS and EBS](../aws/eks/ebs/) | EKS cluster configuration, EBS CSI driver, StorageClass, PVC, Pod, and Service |
+| [Elastic Beanstalk Node.js sample](../aws/elastic-beanstalk/nodejs-sample/) | Node.js Express application and CodeBuild buildspec |
 
 ## Kubernetes and GitOps
 | Project | Description |
