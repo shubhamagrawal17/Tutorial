@@ -26,7 +26,7 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md", ROOT / "kubernetes" / "README.md",
+            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md", ROOT / "kubernetes" / "README.md", ROOT / "gitops" / "README.md",
         ]:
             with self.subTest(path=path):
                 self.assertTrue(path.exists())
@@ -38,6 +38,10 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
             ROOT / "azure" / "README.md", ROOT / "aws" / "README.md", ROOT / "kubernetes" / "README.md",
             ROOT / "kubernetes" / "helm" / "README.md", ROOT / "kubernetes" / "gateway-api" / "README.md",
+            ROOT / "gitops" / "README.md", ROOT / "gitops" / "argocd" / "README.md",
+            ROOT / "gitops" / "argocd" / "flask-app" / "README.md",
+            ROOT / "gitops" / "argocd" / "gitops-repo" / "README.md",
+            ROOT / "gitops" / "argocd" / "blue-green-rollouts" / "README.md",
             ROOT / "aws" / "elastic-beanstalk" / "nodejs-sample" / "README.md",
         ]
         for document in documents:
@@ -124,6 +128,40 @@ class RepositoryDocumentationTests(unittest.TestCase):
                 self.assertIn("apiVersion: v2", content)
                 self.assertIn("name:", content)
                 self.assertIn("version:", content)
+
+    def test_gitops_projects_use_standardized_layout(self):
+        expected = [
+            "gitops/README.md",
+            "gitops/argocd/README.md",
+            "gitops/argocd/flask-app/Dockerfile",
+            "gitops/argocd/flask-app/azure-pipelines.yml",
+            "gitops/argocd/flask-app/src/app.py",
+            "gitops/argocd/gitops-repo/k8s/deployment.yaml",
+            "gitops/argocd/gitops-repo/k8s/service.yaml",
+            "gitops/argocd/blue-green-rollouts/README.md",
+            "gitops/argocd/blue-green-rollouts/app/argo-rollout-pipeline.yaml",
+            "gitops/argocd/blue-green-rollouts/manifests/rollout.yaml",
+            "gitops/argocd/blue-green-rollouts/manifests/services.yaml",
+            "gitops/argocd/blue-green-rollouts/manifests/ingress.yaml",
+        ]
+        for path in expected:
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).exists(), f"Missing GitOps path: {path}")
+
+    def test_old_argocd_root_paths_are_removed(self):
+        for path in ("ArgoCD", "ArgoCD-Blue-Green-Deployment"):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists(), f"Legacy path remains: {path}")
+
+    def test_gitops_catalogue_links_exist(self):
+        catalogue = (ROOT / "docs" / "PROJECT-CATALOG.md").read_text(encoding="utf-8")
+        for link in [
+            "../gitops/README.md", "../gitops/argocd/README.md",
+            "../gitops/argocd/flask-app/", "../gitops/argocd/gitops-repo/",
+            "../gitops/argocd/blue-green-rollouts/",
+        ]:
+            with self.subTest(link=link):
+                self.assertIn(f"]({link})", catalogue)
 
     def test_catalogue_contains_azure_aws_and_kubernetes_links(self):
         catalogue = (ROOT / "docs" / "PROJECT-CATALOG.md").read_text(encoding="utf-8")

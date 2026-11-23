@@ -11,6 +11,7 @@ Hands-on learning labs, implementation notes, sample applications, infrastructur
 - [Azure tutorials](azure/README.md)
 - [AWS tutorials](aws/README.md)
 - [Kubernetes tutorials](kubernetes/README.md)
+- [GitOps and Argo CD](gitops/README.md)
 
 ## Technology areas
 | Area | Topics |
@@ -40,7 +41,7 @@ There is no single root-level build command because this repository contains ind
 - Cloud resources can incur charges. Understand costs and cleanup steps before running a tutorial.
 
 ## Repository status
-Azure-specific tutorials are grouped under `azure/`. AWS tutorials are grouped under `aws/`. Kubernetes and Helm tutorials are grouped under `kubernetes/`. GitOps and cross-cutting CI/CD examples will be migrated in separate batches. Older examples may still contain generated IDE files, archived bundles, legacy runtimes, or incomplete documentation.
+Azure-specific tutorials are grouped under `azure/`. AWS tutorials are grouped under `aws/`. Kubernetes and Helm tutorials are grouped under `kubernetes/`. Argo CD and GitOps tutorials are grouped under `gitops/`. Cross-cutting CI/CD examples will be migrated in a separate batch. Older examples may still contain generated IDE files, archived bundles, legacy runtimes, or incomplete documentation.
 
 ## License
 No repository-wide license is currently declared. Unless a license is added, reuse and redistribution are not automatically granted.
