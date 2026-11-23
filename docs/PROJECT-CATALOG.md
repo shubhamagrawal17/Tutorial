@@ -37,13 +37,11 @@ Azure, AWS, and Kubernetes tutorials are grouped under `azure/`, `aws/`, and `ku
 ## CI/CD and DevSecOps
 | Project | Description |
 |---|---|
-| [AKS blue-green CI/CD](../CICD%20For%20AKS%20with%20Blue-Green%20Deployment/) | .NET and Kubernetes blue-green |
-| [AKS Helm deployment](../aks-helm-deploy/) | Helm deployment pipeline |
-| [AKS multi-environment Helm](../aks-helm-multi-env/) | Dev and QA values and pipeline |
-| [GitHub Actions](../GitHub%20Actions/) | Workflow and application test examples |
-| [Python CI/CD](../CICD%20for%20Python%20App/) | Python pipeline and tests |
-| [DevSecOps Azure](../devsecops-azure-project/) | SAST, dependency, IaC, and container scanning |
-| [Checkly](../Checkly/) | Browser checks and sample app |
+| [Delivery tutorials index](../delivery/README.md) | CI/CD, Helm, GitHub Actions, DevSecOps, and monitoring |
+| [Azure Pipelines examples](../delivery/azure-pipelines/README.md) | AKS blue-green, Python, and Helm delivery |
+| [GitHub Actions tutorials](../delivery/github-actions/README.md) | Day-based CI/CD and Azure OIDC examples |
+| [DevSecOps pipeline](../delivery/devsecops/README.md) | SAST, dependency, tests, Trivy, Checkov, and deployments |
+| [Checkly monitoring](../delivery/monitoring/README.md) | Browser monitoring demo and test application |
 
 ## Applications
 | Project | Description |
