@@ -1,0 +1,39 @@
+name: Repository documentation checks
+
+on:
+  pull_request:
+    paths:
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "docs/**"
+      - "tests/**"
+      - ".github/workflows/docs-validation.yml"
+  push:
+    branches:
+      - main
+    paths:
+      - "README.md"
+      - "CONTRIBUTING.md"
+      - "docs/**"
+      - "tests/**"
+      - ".github/workflows/docs-validation.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  documentation:
+    name: Validate repository documentation
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Run documentation tests
+        run: python -m unittest discover -s tests -v
