@@ -26,7 +26,7 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md", ROOT / "kubernetes" / "README.md", ROOT / "gitops" / "README.md",
+            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md", ROOT / "kubernetes" / "README.md", ROOT / "gitops" / "README.md", ROOT / "delivery" / "README.md",
         ]:
             with self.subTest(path=path):
                 self.assertTrue(path.exists())
@@ -42,6 +42,15 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "gitops" / "argocd" / "flask-app" / "README.md",
             ROOT / "gitops" / "argocd" / "gitops-repo" / "README.md",
             ROOT / "gitops" / "argocd" / "blue-green-rollouts" / "README.md",
+            ROOT / "delivery" / "README.md", ROOT / "delivery" / "azure-pipelines" / "README.md",
+            ROOT / "delivery" / "azure-pipelines" / "aks-blue-green" / "README.md",
+            ROOT / "delivery" / "azure-pipelines" / "python-app" / "README.md",
+            ROOT / "delivery" / "azure-pipelines" / "helm-single" / "README.md",
+            ROOT / "delivery" / "azure-pipelines" / "helm-multi-env" / "README.md",
+            ROOT / "delivery" / "github-actions" / "README.md",
+            ROOT / "delivery" / "devsecops" / "README.md",
+            ROOT / "delivery" / "monitoring" / "README.md",
+            ROOT / "delivery" / "monitoring" / "checkly" / "checkly-demo-app" / "README.md",
             ROOT / "aws" / "elastic-beanstalk" / "nodejs-sample" / "README.md",
         ]
         for document in documents:
@@ -160,6 +169,40 @@ class RepositoryDocumentationTests(unittest.TestCase):
             "../gitops/argocd/flask-app/", "../gitops/argocd/gitops-repo/",
             "../gitops/argocd/blue-green-rollouts/",
         ]:
+            with self.subTest(link=link):
+                self.assertIn(f"]({link})", catalogue)
+
+    def test_delivery_projects_use_standardized_layout(self):
+        expected = [
+            "delivery/README.md",
+            "delivery/azure-pipelines/aks-blue-green/azure-pipelines.yml",
+            "delivery/azure-pipelines/python-app/temp-python-app/azure-pipelines.yml",
+            "delivery/azure-pipelines/helm-single/azure-pipelines.yml",
+            "delivery/azure-pipelines/helm-multi-env/azure-pipelines.yml",
+            "delivery/github-actions/Day-2/.github/workflows/main.yml",
+            "delivery/github-actions/Day-4/fastapi-app/.github/workflows/main.yml",
+            "delivery/devsecops/azure-pipelines.yml",
+            "delivery/devsecops/pipeline.yaml",
+            "delivery/monitoring/checkly/checkly-demo-app/README.md",
+        ]
+        for path in expected:
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).exists(), f"Missing delivery path: {path}")
+
+    def test_old_delivery_root_paths_are_removed(self):
+        for path in (
+            "CICD For AKS with Blue-Green Deployment", "CICD for Python App",
+            "Checkly", "GitHub Actions", "aks-helm-deploy", "aks-helm-multi-env",
+            "devsecops-azure-project",
+        ):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists(), f"Legacy path remains: {path}")
+
+    def test_delivery_catalogue_links_exist(self):
+        catalogue = (ROOT / "docs" / "PROJECT-CATALOG.md").read_text(encoding="utf-8")
+        for link in ["../delivery/README.md", "../delivery/azure-pipelines/README.md",
+                     "../delivery/github-actions/README.md", "../delivery/devsecops/README.md",
+                     "../delivery/monitoring/README.md"]:
             with self.subTest(link=link):
                 self.assertIn(f"]({link})", catalogue)
 

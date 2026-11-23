@@ -1,6 +1,6 @@
 # Repository structure
 
-Azure, AWS, Kubernetes, and GitOps tutorials are grouped under `azure/`, `aws/`, `kubernetes/`, and `gitops/`. Cross-cutting CI/CD examples remain at their previous locations until a separate migration pull request.
+Azure, AWS, Kubernetes, and GitOps tutorials are grouped under `azure/`, `aws/`, `kubernetes/`, and `gitops/`. CI/CD, DevSecOps, Helm delivery, GitHub Actions, and monitoring examples are grouped under `delivery/`.
 
 ```text
 Tutorial/
@@ -42,11 +42,31 @@ Tutorial/
 │       ├── flask-app/
 │       ├── gitops-repo/
 │       └── blue-green-rollouts/
-├── CI/CD and DevSecOps examples
+├── delivery/
+│   ├── README.md
+│   ├── azure-pipelines/
+│   │   ├── aks-blue-green/
+│   │   ├── python-app/
+│   │   ├── helm-single/
+│   │   └── helm-multi-env/
+│   ├── github-actions/
+│   ├── devsecops/
+│   └── monitoring/checkly/
 └── Application examples
 ```
 
 The remaining root-level labels are descriptive placeholders, not literal directory names. Use the [project catalogue](PROJECT-CATALOG.md) for exact paths.
+
+## Delivery engineering migration mapping
+| Previous path | New path |
+|---|---|
+| `CICD For AKS with Blue-Green Deployment/` | `delivery/azure-pipelines/aks-blue-green/` |
+| `CICD for Python App/` | `delivery/azure-pipelines/python-app/` |
+| `aks-helm-deploy/` | `delivery/azure-pipelines/helm-single/` |
+| `aks-helm-multi-env/` | `delivery/azure-pipelines/helm-multi-env/` |
+| `GitHub Actions/` | `delivery/github-actions/` |
+| `devsecops-azure-project/` | `delivery/devsecops/` |
+| `Checkly/` | `delivery/monitoring/checkly/` |
 
 ## GitOps and Argo CD migration mapping
 | Previous path | New path |
