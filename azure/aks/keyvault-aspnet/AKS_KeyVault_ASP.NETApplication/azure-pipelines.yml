@@ -27,7 +27,8 @@ stages:
         containerRegistry: 'ACR'  # Replace with your ACR service connection
         repository: 'my-app'  # Replace with the name of your repository in ACR
         command: buildAndPush
-        dockerfile: '$(Build.SourcesDirectory)/keyvault/Dockerfile'
+        dockerfile: '$(Build.SourcesDirectory)/azure/aks/keyvault-aspnet/AKS_KeyVault_ASP.NETApplication/keyvault/Dockerfile'
+        buildContext: '$(Build.SourcesDirectory)/azure/aks/keyvault-aspnet/AKS_KeyVault_ASP.NETApplication/keyvault'
         tags: |
           $(tag)
         # No build arguments needed for Key Vault name

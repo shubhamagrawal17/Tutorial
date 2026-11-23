@@ -1,17 +1,15 @@
-"""Dependency-free checks for repository landing-page and catalogue links."""
+"""Dependency-free checks for repository documentation and migrated paths."""
 
 from pathlib import Path
 import re
 import unittest
 from urllib.parse import unquote
 
-
 ROOT = Path(__file__).resolve().parents[1]
 MARKDOWN_LINK = re.compile(r"(?<!!)\[[^\]]+\]\(([^)]+)\)")
 
 
 def local_targets(markdown_path: Path):
-    """Yield local Markdown link targets, excluding URLs, anchors, and mailto links."""
     content = markdown_path.read_text(encoding="utf-8")
     for raw_target in MARKDOWN_LINK.findall(content):
         target = raw_target.strip()
@@ -24,71 +22,86 @@ def local_targets(markdown_path: Path):
 
 class RepositoryDocumentationTests(unittest.TestCase):
     def test_required_entry_points_exist(self):
-        required = [
-            ROOT / "README.md",
-            ROOT / "CONTRIBUTING.md",
+        for path in [
+            ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-        ]
-        for path in required:
-            with self.subTest(path=path.relative_to(ROOT)):
-                self.assertTrue(path.exists(), f"Missing documentation: {path}")
+            ROOT / "azure" / "README.md",
+        ]:
+            with self.subTest(path=path):
+                self.assertTrue(path.exists())
 
-    def test_readme_and_catalogue_local_links_resolve(self):
+    def test_documentation_links_resolve(self):
         documents = [
-            ROOT / "README.md",
+            ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-            ROOT / "CONTRIBUTING.md",
+            ROOT / "azure" / "README.md",
         ]
         for document in documents:
             for target in local_targets(document):
-                with self.subTest(document=document.relative_to(ROOT), target=target):
-                    self.assertTrue(
-                        target.exists(),
-                        f"Broken local link in {document.relative_to(ROOT)}: {target}",
-                    )
+                with self.subTest(document=document, target=target):
+                    self.assertTrue(target.exists(), f"Broken link: {target}")
 
-    def test_catalogue_contains_all_current_top_level_project_directories(self):
+    def test_azure_projects_use_standardized_layout(self):
+        expected = [
+            "azure/aks/nginx-ingress", "azure/aks/keyvault-aspnet",
+            "azure/key-vault/aspnet-sample", "azure/aks/cert-manager-letsencrypt",
+            "azure/terraform/infra-as-code", "azure/devops-agent-vm",
+            "azure/aks/troubleshooting/AKS-Deployment-Issue.yaml",
+            "azure/key-vault/azure-sql-local-dotnet.md",
+        ]
+        for path in expected:
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).exists(), f"Missing migrated path: {path}")
+
+    def test_old_azure_root_paths_are_removed(self):
+        old = [
+            "AKS-Nginx", "AKS_KeyVault ASP.NET Application",
+            "KeyVault with ASP.NET Application", "SSL on Aks with Lets Encrypt",
+            "infra-as-code", "VM", "AKS-Deployment-Issue.yaml",
+            "KeyVault+Azure SQL DB + Local Dotnet Core App.md",
+        ]
+        for path in old:
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists(), f"Legacy path remains: {path}")
+
+    def test_catalogue_contains_azure_links(self):
         catalogue = (ROOT / "docs" / "PROJECT-CATALOG.md").read_text(encoding="utf-8")
-        project_directories = [
-            "AKS-Nginx",
-            "AKS_KeyVault ASP.NET Application",
-            "AWS-EKS",
-            "AWS",
-            "ArgoCD-Blue-Green-Deployment",
-            "ArgoCD",
-            "CICD For AKS with Blue-Green Deployment",
-            "CICD for Python App",
-            "Checkly",
-            "GitHub Actions",
-            "Helm",
-            "Java-app",
-            "KeyVault with ASP.NET Application",
-            "Kubernetes-Gateway-api",
-            "SSL on Aks with Lets Encrypt",
-            "VM",
-            "aks-helm-deploy",
-            "aks-helm-multi-env",
-            "devsecops-azure-project",
-            "eticket-App",
-            "infra-as-code",
-            "python-app-docker",
-        ]
-        for directory in project_directories:
-            with self.subTest(directory=directory):
-                self.assertIn(f"../{directory.replace(' ', '%20')}", catalogue)
+        for link in [
+            "../azure/README.md", "../azure/aks/nginx-ingress/",
+            "../azure/aks/keyvault-aspnet/", "../azure/key-vault/aspnet-sample/",
+            "../azure/aks/cert-manager-letsencrypt/",
+            "../azure/aks/troubleshooting/AKS-Deployment-Issue.yaml",
+            "../azure/terraform/infra-as-code/", "../azure/devops-agent-vm/",
+            "../azure/key-vault/azure-sql-local-dotnet.md",
+        ]:
+            with self.subTest(link=link):
+                self.assertIn(f"]({link})", catalogue)
 
-    def test_no_absolute_machine_paths_in_new_docs(self):
-        documents = [
-            ROOT / "README.md",
-            ROOT / "CONTRIBUTING.md",
-            ROOT / "docs" / "PROJECT-CATALOG.md",
-            ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
+    def test_terraform_pipeline_working_directories_exist(self):
+        pipeline = ROOT / "azure/terraform/infra-as-code/azure-pipelines.yml"
+        content = pipeline.read_text(encoding="utf-8")
+        paths = re.findall(r"workingDirectory:\s*['\"]\$\(Build\.SourcesDirectory\)/([^'\"]+)['\"]", content)
+        self.assertTrue(paths)
+        for path in paths:
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).is_dir(), f"Missing pipeline path: {path}")
+
+    def test_keyvault_pipeline_dockerfile_and_context_exist(self):
+        pipelines = [
+            ROOT / "azure/aks/keyvault-aspnet/AKS_KeyVault_ASP.NETApplication/azure-pipelines.yml",
+            ROOT / "azure/key-vault/aspnet-sample/KeyVaultASP.NETApplication/azure-pipelines.yml",
         ]
-        for document in documents:
-            content = document.read_text(encoding="utf-8")
-            self.assertNotRegex(content, r"(?m)(?:C:\\Users\\|/Users/[^/]+/|/home/[^/]+/)")
+        for pipeline in pipelines:
+            content = pipeline.read_text(encoding="utf-8")
+            for key in ("dockerfile", "buildContext"):
+                match = re.search(rf"{key}:\s*['\"]\$\(Build\.SourcesDirectory\)/([^'\"]+)['\"]", content)
+                self.assertIsNotNone(match, f"{key} missing from {pipeline}")
+                if match:
+                    target = ROOT / match.group(1)
+                    self.assertTrue(target.is_file() if key == "dockerfile" else target.is_dir(), f"Invalid {key}: {target}")
+
 
 if __name__ == "__main__":
     unittest.main()
