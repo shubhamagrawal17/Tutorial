@@ -26,7 +26,7 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md",
+            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md", ROOT / "kubernetes" / "README.md",
         ]:
             with self.subTest(path=path):
                 self.assertTrue(path.exists())
@@ -36,7 +36,8 @@ class RepositoryDocumentationTests(unittest.TestCase):
             ROOT / "README.md", ROOT / "CONTRIBUTING.md",
             ROOT / "docs" / "PROJECT-CATALOG.md",
             ROOT / "docs" / "REPOSITORY-STRUCTURE.md",
-            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md",
+            ROOT / "azure" / "README.md", ROOT / "aws" / "README.md", ROOT / "kubernetes" / "README.md",
+            ROOT / "kubernetes" / "helm" / "README.md", ROOT / "kubernetes" / "gateway-api" / "README.md",
             ROOT / "aws" / "elastic-beanstalk" / "nodejs-sample" / "README.md",
         ]
         for document in documents:
@@ -90,7 +91,41 @@ class RepositoryDocumentationTests(unittest.TestCase):
             with self.subTest(path=path):
                 self.assertFalse((ROOT / path).exists(), f"Legacy AWS path remains: {path}")
 
-    def test_catalogue_contains_azure_and_aws_links(self):
+    def test_kubernetes_projects_use_standardized_layout(self):
+        expected = [
+            "kubernetes/README.md", "kubernetes/gateway-api/README.md",
+            "kubernetes/gateway-api/app.yaml", "kubernetes/gateway-api/gateway.yaml",
+            "kubernetes/gateway-api/gatewayclass.yaml", "kubernetes/gateway-api/httproute.yaml",
+            "kubernetes/helm/README.md", "kubernetes/helm/built-in-objects/README.md",
+            "kubernetes/helm/named-template/Chart.yaml",
+            "kubernetes/helm/helm-boolean-and-demo/Chart.yaml",
+            "kubernetes/helm/helm-ifelse-or-not-demo/Chart.yaml",
+            "kubernetes/helm/helm-ifelse-eq-demo/Chart.yaml",
+        ]
+        for path in expected:
+            with self.subTest(path=path):
+                self.assertTrue((ROOT / path).exists(), f"Missing Kubernetes tutorial path: {path}")
+
+    def test_old_kubernetes_root_paths_are_removed(self):
+        for path in ("Kubernetes-Gateway-api", "Helm"):
+            with self.subTest(path=path):
+                self.assertFalse((ROOT / path).exists(), f"Legacy Kubernetes path remains: {path}")
+
+    def test_helm_chart_metadata_exists(self):
+        charts = [
+            "kubernetes/helm/named-template/Chart.yaml",
+            "kubernetes/helm/helm-boolean-and-demo/Chart.yaml",
+            "kubernetes/helm/helm-ifelse-or-not-demo/Chart.yaml",
+            "kubernetes/helm/helm-ifelse-eq-demo/Chart.yaml",
+        ]
+        for path in charts:
+            with self.subTest(path=path):
+                content = (ROOT / path).read_text(encoding="utf-8")
+                self.assertIn("apiVersion: v2", content)
+                self.assertIn("name:", content)
+                self.assertIn("version:", content)
+
+    def test_catalogue_contains_azure_aws_and_kubernetes_links(self):
         catalogue = (ROOT / "docs" / "PROJECT-CATALOG.md").read_text(encoding="utf-8")
         for link in [
             "../azure/README.md", "../azure/aks/nginx-ingress/",
@@ -101,6 +136,7 @@ class RepositoryDocumentationTests(unittest.TestCase):
             "../azure/key-vault/azure-sql-local-dotnet.md",
             "../aws/README.md", "../aws/eks/ebs/",
             "../aws/elastic-beanstalk/nodejs-sample/",
+            "../kubernetes/README.md", "../kubernetes/gateway-api/", "../kubernetes/helm/",
         ]:
             with self.subTest(link=link):
                 self.assertIn(f"]({link})", catalogue)
