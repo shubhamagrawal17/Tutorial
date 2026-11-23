@@ -1,6 +1,6 @@
 # Repository structure
 
-Azure, AWS, and Kubernetes tutorials are grouped under `azure/`, `aws/`, and `kubernetes/`. GitOps and cross-cutting CI/CD examples remain at their previous locations until separate migration pull requests.
+Azure, AWS, Kubernetes, and GitOps tutorials are grouped under `azure/`, `aws/`, `kubernetes/`, and `gitops/`. Cross-cutting CI/CD examples remain at their previous locations until a separate migration pull request.
 
 ```text
 Tutorial/
@@ -35,12 +35,28 @@ Tutorial/
 │       ├── helm-boolean-and-demo/
 │       ├── helm-ifelse-or-not-demo/
 │       └── helm-ifelse-eq-demo/
-├── Argo CD and GitOps examples
+├── gitops/
+│   ├── README.md
+│   └── argocd/
+│       ├── README.md
+│       ├── flask-app/
+│       ├── gitops-repo/
+│       └── blue-green-rollouts/
 ├── CI/CD and DevSecOps examples
 └── Application examples
 ```
 
 The remaining root-level labels are descriptive placeholders, not literal directory names. Use the [project catalogue](PROJECT-CATALOG.md) for exact paths.
+
+## GitOps and Argo CD migration mapping
+| Previous path | New path |
+|---|---|
+| `ArgoCD/README.md` | `gitops/argocd/README.md` |
+| `ArgoCD/Python-Flask/` | `gitops/argocd/flask-app/` |
+| `ArgoCD/gitops-repo/` | `gitops/argocd/gitops-repo/` |
+| `ArgoCD-Blue-Green-Deployment/README.md` | `gitops/argocd/blue-green-rollouts/README.md` |
+| `ArgoCD-Blue-Green-Deployment/argocd-blue-green-app/` | `gitops/argocd/blue-green-rollouts/app/` |
+| `ArgoCD-Blue-Green-Deployment/argocd-blue-green-manifests/` | `gitops/argocd/blue-green-rollouts/manifests/` |
 
 ## Kubernetes migration mapping
 | Previous path | New path |

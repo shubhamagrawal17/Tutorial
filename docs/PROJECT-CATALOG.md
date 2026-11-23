@@ -1,6 +1,6 @@
 # Project catalogue
 
-Azure, AWS, and Kubernetes tutorials are grouped under `azure/`, `aws/`, and `kubernetes/`. GitOps and cross-cutting CI/CD projects remain at their existing paths until their own migration batches.
+Azure, AWS, and Kubernetes tutorials are grouped under `azure/`, `aws/`, and `kubernetes/`. Argo CD and GitOps projects are grouped under `gitops/`; cross-cutting CI/CD projects remain at their existing paths until their own migration batch.
 
 ## Azure
 | Project | Description |
@@ -28,8 +28,11 @@ Azure, AWS, and Kubernetes tutorials are grouped under `azure/`, `aws/`, and `ku
 | [Kubernetes tutorials index](../kubernetes/README.md) | Kubernetes and Helm learning examples |
 | [Gateway API with Envoy Gateway](../kubernetes/gateway-api/) | GatewayClass, Gateway, HTTPRoute, weighted backend routing |
 | [Helm tutorials](../kubernetes/helm/) | Helm charts, built-in objects, named templates, and conditional templates |
-| [Argo CD and Flask](../ArgoCD/) | Flask and GitOps |
-| [Argo CD blue-green](../ArgoCD-Blue-Green-Deployment/) | Argo Rollouts and promotion |
+| [GitOps and Argo CD index](../gitops/README.md) | GitOps learning paths and Argo CD projects |
+| [Argo CD platform setup](../gitops/argocd/README.md) | Argo CD installation, access, and cluster registration |
+| [Argo CD Flask application](../gitops/argocd/flask-app/) | Flask sample, Azure Pipelines image build, and GitOps update |
+| [Argo CD GitOps manifests](../gitops/argocd/gitops-repo/) | Kubernetes Deployment and Service watched by Argo CD |
+| [Argo Rollouts blue-green](../gitops/argocd/blue-green-rollouts/) | Preview/active Services, Rollout, Ingress, and promotion pipeline |
 
 ## CI/CD and DevSecOps
 | Project | Description |
