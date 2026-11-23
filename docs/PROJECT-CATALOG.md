@@ -1,6 +1,6 @@
 # Project catalogue
 
-Azure tutorials have been migrated into `azure/`. AWS, standalone Kubernetes, GitOps, and cross-cutting CI/CD projects remain at their existing paths until their own migration batches.
+Azure, AWS, and Kubernetes tutorials are grouped under `azure/`, `aws/`, and `kubernetes/`. GitOps and cross-cutting CI/CD projects remain at their existing paths until their own migration batches.
 
 ## Azure
 | Project | Description |
@@ -25,8 +25,9 @@ Azure tutorials have been migrated into `azure/`. AWS, standalone Kubernetes, Gi
 ## Kubernetes and GitOps
 | Project | Description |
 |---|---|
-| [Kubernetes Gateway API](../Kubernetes-Gateway-api/) | GatewayClass, Gateway, HTTPRoute |
-| [Helm tutorials](../Helm/) | Helm charts and templates |
+| [Kubernetes tutorials index](../kubernetes/README.md) | Kubernetes and Helm learning examples |
+| [Gateway API with Envoy Gateway](../kubernetes/gateway-api/) | GatewayClass, Gateway, HTTPRoute, weighted backend routing |
+| [Helm tutorials](../kubernetes/helm/) | Helm charts, built-in objects, named templates, and conditional templates |
 | [Argo CD and Flask](../ArgoCD/) | Flask and GitOps |
 | [Argo CD blue-green](../ArgoCD-Blue-Green-Deployment/) | Argo Rollouts and promotion |
 

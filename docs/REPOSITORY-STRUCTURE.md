@@ -1,6 +1,6 @@
 # Repository structure
 
-Azure and AWS tutorials are now grouped under `azure/` and `aws/`. Standalone Kubernetes, GitOps, and cross-cutting CI/CD examples remain at their previous locations until separate migration pull requests.
+Azure, AWS, and Kubernetes tutorials are grouped under `azure/`, `aws/`, and `kubernetes/`. GitOps and cross-cutting CI/CD examples remain at their previous locations until separate migration pull requests.
 
 ```text
 Tutorial/
@@ -25,13 +25,32 @@ Tutorial/
 │   ├── README.md
 │   ├── eks/ebs/
 │   └── elastic-beanstalk/nodejs-sample/
-├── Kubernetes and Helm examples
+├── kubernetes/
+│   ├── README.md
+│   ├── gateway-api/
+│   └── helm/
+│       ├── README.md
+│       ├── built-in-objects/
+│       ├── named-template/
+│       ├── helm-boolean-and-demo/
+│       ├── helm-ifelse-or-not-demo/
+│       └── helm-ifelse-eq-demo/
 ├── Argo CD and GitOps examples
 ├── CI/CD and DevSecOps examples
 └── Application examples
 ```
 
 The remaining root-level labels are descriptive placeholders, not literal directory names. Use the [project catalogue](PROJECT-CATALOG.md) for exact paths.
+
+## Kubernetes migration mapping
+| Previous path | New path |
+|---|---|
+| `Kubernetes-Gateway-api/` | `kubernetes/gateway-api/` |
+| `Helm/Built-in Objects/` | `kubernetes/helm/built-in-objects/` |
+| `Helm/Named Template/` | `kubernetes/helm/named-template/` |
+| `Helm/helm-boolean-and-demo/` | `kubernetes/helm/helm-boolean-and-demo/` |
+| `Helm/helm-ifelse-OR-NOT-demo/` | `kubernetes/helm/helm-ifelse-or-not-demo/` |
+| `Helm/helm-ifelse-eq-demo/` | `kubernetes/helm/helm-ifelse-eq-demo/` |
 
 ## AWS migration mapping
 | Previous path | New path |
